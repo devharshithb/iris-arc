@@ -1,0 +1,30 @@
+# Node / Next.js
+node_modules/
+.next/
+dist/
+out/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache/
+.vercel/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS/editor
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Tests/coverage
+coverage/
+
+# Build artifacts
+**/*.local
