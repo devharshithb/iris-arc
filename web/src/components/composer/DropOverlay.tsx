@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Image as Img, FileText, Waves } from "lucide-react";
+import Image from "next/image";
 import { useAppStore } from "@/lib/store";
 
 const ACCEPTED = ["Files"]; // dataTransfer.types includes "Files" for file drags
 
-export default function DropOverlay() {
+export default function DropOverlay({
+  heroSrc = "/drop-hero.png", // <-- put your file in /public/drop-hero.png
+  heroAlt = "Drop files",
+}: {
+  heroSrc?: string;
+  heroAlt?: string;
+}) {
   const { addDraftFiles, draftFiles } = useAppStore();
   const [show, setShow] = useState(false);
   const [dragDepth, setDragDepth] = useState(0);
@@ -69,18 +75,25 @@ export default function DropOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm ring-2 ring-dashed ring-white/20
-                 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm ring-2 ring-dashed ring-white/20 animate-in fade-in-0 duration-150"
       aria-hidden="true"
     >
       <div className="absolute inset-0 grid place-items-center">
         <div className="text-center">
           <div className="relative mx-auto mb-3">
-            <div className="grid place-items-center h-16 w-16 rounded-full bg-black/50 border shadow-lg">
-              <Img className="h-7 w-7" />
+            {/* Custom hero image */}
+            <div className="grid place-items-center h-20 w-20 rounded-full bg-black/50 border shadow-lg overflow-hidden"
+                 style={{ borderColor: "var(--border-weak)" }}>
+              <Image
+                src={heroSrc}
+                alt={heroAlt}
+                width={64}
+                height={64}
+                priority
+                draggable={false}
+                style={{ objectFit: "contain" }}
+              />
             </div>
-            <FileText className="h-5 w-5 absolute -left-4 top-1/2 -translate-y-1/2 opacity-80" />
-            <Waves className="h-5 w-5 absolute -right-4 top-1/2 -translate-y-1/2 opacity-80" />
           </div>
           <div className="text-[22px] font-semibold">Add anything</div>
           <div className="mt-1 text-sm opacity-80">

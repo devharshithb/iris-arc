@@ -32,4 +32,13 @@ export type Thread = {
   model?: string;
   temperature?: number;
   participants?: AgentRole[];
+  /** Optional project association (Projects are “folders”) */
+  projectId?: string;
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 };

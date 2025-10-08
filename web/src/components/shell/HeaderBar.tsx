@@ -5,6 +5,7 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import SettingsPopover from "@/components/shell/SettingsPopover";
 
 /**
  * HeaderBar with subtle motion
@@ -61,6 +62,7 @@ export default function HeaderBar() {
         >
           <Sparkles className="h-4 w-4" />
         </button>
+        <SettingsPopover />
       </motion.div>
     </header>
   );

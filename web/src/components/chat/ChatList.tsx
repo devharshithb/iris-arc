@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import ChatMessage from "@/components/chat/ChatMessage";
-import LandingTiles from "@/components/chat/LandingTiles";
 import { ArrowDown } from "lucide-react";
 
 /** Keep in sync with Composer width/padding */
@@ -27,11 +26,26 @@ export default function ChatList() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const canvasRef   = useRef<HTMLDivElement>(null);
 
+  const [screenW, setScreenW] = useState(0);
   const [showJump, setShowJump] = useState(false);
 
   // autoscroll only when pinned to bottom
   const pinnedRef = useRef(true);
   const prevHRef  = useRef(0);
+
+  /* ---------- sizing ---------- */
+  useEffect(() => {
+    const onResize = () => setScreenW(window.innerWidth);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Match composer inner content width (outer – inner padding)
+  const messageMaxWidth = Math.max(
+    320,
+    Math.floor(screenW * WIDTH_RATIO) - PAD_X * 2
+  );
 
   /* ---------- share canvas width ---------- */
   useLayoutEffect(() => {
@@ -129,18 +143,16 @@ export default function ChatList() {
         <div
           ref={canvasRef}
           className="mx-auto w-full px-6 py-4 space-y-4"
-          // DEFINE the shared CSS var for message/composer width (SSR/CSR identical)
-          style={{
-            paddingBottom: bottomPadding,
-            // outer composer width (50.26vw) minus inner padding on both sides (20px * 2)
-            // all messages/tiles use this value so no hydration mismatch occurs.
-            ["--message-max" as any]: `calc(${WIDTH_RATIO * 100}vw - ${PAD_X * 2}px)`,
-          }}
+          style={{ paddingBottom: bottomPadding }}
         >
-          {list.length === 0 || (list.length === 1 && list[0].role === "assistant") ? (
-            <LandingTiles />
+          {list.length === 0 ? (
+            <div className="h-[60vh] grid place-items-center opacity-70">
+              Start a new conversation…
+            </div>
           ) : (
-            list.map((m) => <ChatMessage key={m.id} msg={m} />)
+            list.map((m) => (
+              <ChatMessage key={m.id} msg={m} maxWidth={messageMaxWidth} />
+            ))
           )}
         </div>
       </div>
@@ -160,7 +172,7 @@ export default function ChatList() {
           title="Jump to latest"
           aria-label="Jump to latest"
         >
-          <ArrowDown className="h-5 w-5" style={{ color: "var(--text-primary)" }} />
+          <ArrowDown className="h-5 w-5 text-[color:var(--fg-default)]" />
         </button>
       )}
     </div>

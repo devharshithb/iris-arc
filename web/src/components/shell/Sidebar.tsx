@@ -1,24 +1,57 @@
 "use client";
 
 import { useAppStore } from "@/lib/store";
-import { Plus, Menu } from "lucide-react";
+import {
+  Plus,
+  Menu,
+  Search,
+  BookOpen,
+  ScrollText,
+  Bot,
+  FolderPlus,
+  Folder,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 import { motion, AnimatePresence, useReducedMotion, easeOut } from "framer-motion";
+import { useState } from "react";
+import SearchPanel from "@/components/shell/SearchPanel";
+import ProjectPicker from "@/components/shell/ProjectPicker";
 
-/**
- * Sidebar
- * - Open bg: var(--surface-sidebar-open)
- * - Collapsed bg: var(--surface-sidebar-closed)
- * - Width is still owned by the parent grid (unchanged).
- * - Framer Motion:
- *    • Top bar + footer fade/slide on mount/open
- *    • Threads list items stagger in when opening
- */
+function Item({
+  children,
+  active,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors flex items-center gap-2",
+        active ? "bg-white/10" : "hover:bg-white/5",
+        disabled ? "opacity-60 cursor-not-allowed" : "",
+      ].join(" ")}
+      style={{ borderColor: "var(--border-weak)" }}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Sidebar() {
   const {
     leftSidebarOpen,
@@ -27,12 +60,20 @@ export default function Sidebar() {
     currentThreadId,
     setCurrentThread,
     newThread,
+    // projects
+    projects,
+    createProject,
+    renameProject,
+    deleteProject,
+    setProjectFilter,
+    currentProjectFilter,
   } = useAppStore();
 
   const bg = leftSidebarOpen
     ? "var(--surface-sidebar-open)"
     : "var(--surface-sidebar-closed)";
   const prefersReduced = useReducedMotion();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0, y: prefersReduced ? 0 : -6 },
@@ -50,8 +91,37 @@ export default function Sidebar() {
 
   const itemVariants = {
     hidden: { opacity: 0, x: prefersReduced ? 0 : -8 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.16, ease: easeOut } },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.16, ease: easeOut },
+    },
   };
+
+  const TopIconButton = ({
+    title,
+    onClick,
+    children,
+  }: {
+    title: string;
+    onClick?: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button
+      onClick={onClick}
+      className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+      title={title}
+      aria-label={title}
+      style={{ borderColor: "var(--border-weak)" }}
+    >
+      {children}
+    </button>
+  );
+
+  // filter threads by project (undefined = All)
+  const filteredThreads = threads.filter((t) =>
+    currentProjectFilter === undefined ? true : t.projectId === currentProjectFilter
+  );
 
   return (
     <aside
@@ -59,6 +129,9 @@ export default function Sidebar() {
       style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }}
     >
       <TooltipProvider delayDuration={80}>
+        {/* Search overlay */}
+        <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
+
         {/* Top bar */}
         <motion.div
           initial="hidden"
@@ -67,15 +140,14 @@ export default function Sidebar() {
           className="flex items-center gap-2 px-3 h-14 border-b"
           style={{ borderColor: "var(--border-weak)" }}
         >
-          <motion.button
-            variants={itemVariants}
-            onClick={toggleLeftSidebar}
-            className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
-            title={leftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            style={{ borderColor: "var(--border-weak)" }}
-          >
-            <Menu className="h-4 w-4" />
-          </motion.button>
+          <motion.div variants={itemVariants}>
+            <TopIconButton
+              title={leftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              onClick={toggleLeftSidebar}
+            >
+              <Menu className="h-4 w-4" />
+            </TopIconButton>
+          </motion.div>
 
           <AnimatePresence initial={false} mode="popLayout">
             {leftSidebarOpen ? (
@@ -85,7 +157,7 @@ export default function Sidebar() {
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
-                onClick={() => setCurrentThread(newThread())}
+                onClick={() => setCurrentThread(newThread(currentProjectFilter))}
                 className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-white/10 transition-colors"
                 title="New chat"
                 style={{ borderColor: "var(--border-weak)" }}
@@ -96,19 +168,20 @@ export default function Sidebar() {
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <motion.button
+                  <motion.div
                     key="new-icon"
                     variants={itemVariants}
                     initial="hidden"
                     animate="visible"
                     exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
-                    onClick={() => setCurrentThread(newThread())}
-                    className="ml-auto grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
-                    aria-label="New chat"
-                    style={{ borderColor: "var(--border-weak)" }}
                   >
-                    <Plus className="h-4 w-4" />
-                  </motion.button>
+                    <TopIconButton
+                      title="New chat"
+                      onClick={() => setCurrentThread(newThread(currentProjectFilter))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </TopIconButton>
+                  </motion.div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-xs">
                   New chat
@@ -118,53 +191,202 @@ export default function Sidebar() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Threads */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
-          <AnimatePresence initial={false} mode="sync">
-            {threads.map((t, idx) => {
+        {/* Primary nav (Search works) */}
+        <div className="px-2 py-2">
+          {leftSidebarOpen ? (
+            <div className="space-y-1">
+              <Item onClick={() => setCurrentThread(newThread(currentProjectFilter))}>
+                <Plus className="h-4 w-4" />
+                <span>New chat</span>
+              </Item>
+              <Item onClick={() => setSearchOpen(true)}>
+                <Search className="h-4 w-4" />
+                <span>Search chats</span>
+              </Item>
+              <Item onClick={() => toast("Library coming soon")}>
+                <BookOpen className="h-4 w-4" />
+                <span>Library</span>
+              </Item>
+              <Item onClick={() => toast("Codex coming soon")}>
+                <ScrollText className="h-4 w-4" />
+                <span>Codex</span>
+              </Item>
+              <Item onClick={() => toast("GPTs coming soon")}>
+                <Bot className="h-4 w-4" />
+                <span>GPTs</span>
+              </Item>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              {[
+                { icon: <Plus className="h-4 w-4" />, t: "New chat", cb: () => setCurrentThread(newThread(currentProjectFilter)) },
+                { icon: <Search className="h-4 w-4" />, t: "Search chats", cb: () => setSearchOpen(true) },
+                { icon: <BookOpen className="h-4 w-4" />, t: "Library" },
+                { icon: <ScrollText className="h-4 w-4" />, t: "Codex" },
+                { icon: <Bot className="h-4 w-4" />, t: "GPTs" },
+              ].map((it) => (
+                <Tooltip key={it.t}>
+                  <TooltipTrigger asChild>
+                    <TopIconButton
+                      title={it.t}
+                      onClick={() => (it.cb ? it.cb() : toast(`${it.t} coming soon`))}
+                    >
+                      {it.icon}
+                    </TopIconButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    {it.t}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="px-2">
+          <div className="h-px w-full" style={{ background: "var(--border-weak)" }} />
+        </div>
+
+        {/* Projects (folders) with CRUD + filter */}
+        <div className="px-2 mt-2">
+          {leftSidebarOpen ? (
+            <>
+              <div className="px-2 py-1 text-[11px] uppercase tracking-wide opacity-70 flex items-center justify-between">
+                <span>Projects</span>
+                <button
+                  className="text-xs hover:underline"
+                  onClick={() => {
+                    const name = prompt("Project name")?.trim();
+                    if (name) {
+                      const id = createProject(name);
+                      setProjectFilter(id);
+                    }
+                  }}
+                >
+                  New
+                </button>
+              </div>
+              <div className="space-y-1">
+                {/* All filter */}
+                <Item active={currentProjectFilter === undefined} onClick={() => setProjectFilter(undefined)}>
+                  <Folder className="h-4 w-4" />
+                  <span>All</span>
+                </Item>
+                {projects.map((p) => (
+                  <div key={p.id} className="flex items-center gap-1">
+                    <Item
+                      active={currentProjectFilter === p.id}
+                      onClick={() => setProjectFilter(p.id)}
+                    >
+                      <Folder className="h-4 w-4" />
+                      <span className="truncate">{p.name}</span>
+                    </Item>
+                    <button
+                      className="rounded-md p-1 hover:bg-white/10"
+                      title="Rename"
+                      onClick={() => {
+                        const name = prompt("Rename project", p.name)?.trim();
+                        if (name) renameProject(p.id, name);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="rounded-md p-1 hover:bg-white/10"
+                      title="Delete"
+                      onClick={() => {
+                        if (confirm(`Delete project "${p.name}"? Threads will move to Unsorted.`)) {
+                          deleteProject(p.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+                    title="New project"
+                    onClick={() => {
+                      const name = prompt("Project name")?.trim();
+                      if (name) createProject(name);
+                    }}
+                    style={{ borderColor: "var(--border-weak)" }}
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  New project
+                </TooltipContent>
+              </Tooltip>
+              {/* Tap a folder to filter */}
+              {projects.slice(0, 8).map((p) => (
+                <Tooltip key={p.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+                      title={p.name}
+                      onClick={() => setProjectFilter(p.id)}
+                      style={{ borderColor: "var(--border-weak)" }}
+                    >
+                      <Folder className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs max-w-[220px]">
+                    <span className="truncate block">{p.name}</span>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Chats (filtered list) */}
+        <div className="px-2 mt-3 mb-2">
+          {leftSidebarOpen && (
+            <div className="px-2 py-1 text-[11px] uppercase tracking-wide opacity-70">
+              {currentProjectFilter ? "Chats in project" : "Chats"}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            {filteredThreads.map((t) => {
               const active = currentThreadId === t.id;
 
               if (leftSidebarOpen) {
                 return (
-                  <motion.button
-                    key={t.id}
-                    layout
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      delay: prefersReduced ? 0 : 0.02 * idx,
-                      type: "tween",
-                      duration: 0.16,
-                    }}
-                    onClick={() => setCurrentThread(t.id)}
-                    className={[
-                      "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
-                      active ? "bg-white/10" : "hover:bg-white/5",
-                    ].join(" ")}
-                    title={t.title || "New chat"}
-                  >
-                    <span className="block truncate">{t.title || "New chat"}</span>
-                  </motion.button>
+                  <div key={t.id} className="rounded-md">
+                    <button
+                      onClick={() => setCurrentThread(t.id)}
+                      className={[
+                        "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
+                        active ? "bg-white/10" : "hover:bg-white/5",
+                      ].join(" ")}
+                      title={t.title || "New chat"}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="block truncate">{t.title || "New chat"}</span>
+                        {/* move to project */}
+                        <ProjectPicker threadId={t.id} />
+                      </div>
+                    </button>
+                  </div>
                 );
               }
 
-              // Collapsed: dot with tooltip
+              // collapsed: dot indicator with tooltip
               return (
                 <Tooltip key={t.id}>
                   <TooltipTrigger asChild>
-                    <motion.button
-                      layout
-                      variants={itemVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit={{ opacity: 0 }}
-                      transition={{
-                        delay: prefersReduced ? 0 : 0.02 * idx,
-                        type: "tween",
-                        duration: 0.16,
-                      }}
+                    <button
                       onClick={() => setCurrentThread(t.id)}
                       className={[
                         "w-full rounded-md py-2 grid place-items-center transition-colors",
@@ -179,7 +401,7 @@ export default function Sidebar() {
                           backgroundColor: active ? "white" : "rgba(255,255,255,0.6)",
                         }}
                       />
-                    </motion.button>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs max-w-[240px]">
                     <span className="block truncate">{t.title || "New chat"}</span>
@@ -187,19 +409,25 @@ export default function Sidebar() {
                 </Tooltip>
               );
             })}
-          </AnimatePresence>
+          </div>
         </div>
 
         {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0, y: prefersReduced ? 0 : 4 }}
-          animate={{ opacity: leftSidebarOpen ? 0.6 : 0, y: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="border-t px-3 py-2 text-[11px]"
+        <div
+          className="mt-auto border-t px-3 py-2 flex items-center gap-2"
           style={{ borderColor: "var(--border-weak)" }}
         >
-          {leftSidebarOpen ? "Signed in (mock)" : "\u00A0"}
-        </motion.div>
+          <div
+            className="grid place-items-center rounded-full size-7"
+            style={{
+              backgroundColor: "var(--surface-chat)",
+              border: "1px solid var(--border-weak)",
+            }}
+          >
+            <span className="text-[12px]">N</span>
+          </div>
+          {leftSidebarOpen ? <span className="text-[11px]">Signed in (mock)</span> : <span className="sr-only">Signed in</span>}
+        </div>
       </TooltipProvider>
     </aside>
   );
