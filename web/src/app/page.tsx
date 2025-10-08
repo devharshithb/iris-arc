@@ -14,8 +14,8 @@ import { useAppStore } from "@/lib/store";
  * Percentage grid with animation:
  * - Open:  16.96% sidebar / 83.04% chat
  * - Closed: 3.35%  sidebar / 96.65% chat
- * We animate the grid-template-columns so everything glides smoothly.
  * Composer is INSIDE the chat column and will move with it.
+ * Colors via CSS vars; original layout/behavior unchanged.
  */
 export default function Page() {
   useGlobalHotkeys({
@@ -27,7 +27,7 @@ export default function Page() {
   const { leftSidebarOpen, rightRailOpen } = useAppStore();
 
   const LEFT_PCT = leftSidebarOpen ? 16.96 : 3.35;
-  const RIGHT_PCT = rightRailOpen ? 0 : 0; // set if you enable a right rail later
+  const RIGHT_PCT = rightRailOpen ? 0 : 0;
   const CENTER_PCT = Math.max(0, 100 - LEFT_PCT - RIGHT_PCT);
 
   const gridTemplateColumns =
@@ -36,7 +36,7 @@ export default function Page() {
       : `${LEFT_PCT}% ${CENTER_PCT}%`;
 
   return (
-    <div className="h-dvh relative bg-[#212121]">
+    <div className="h-dvh relative" style={{ backgroundColor: "var(--surface-chat)" }}>
       <DropOverlay />
       <div
         className="grid h-full transition-[grid-template-columns] duration-300 ease-in-out"
@@ -45,10 +45,10 @@ export default function Page() {
           willChange: "grid-template-columns",
         }}
       >
-        {/* Sidebar in its own animated column */}
+        {/* Sidebar */}
         <Sidebar />
 
-        {/* Chat column (left-aligned header; composer lives inside) */}
+        {/* Chat column */}
         <section className="relative h-full flex flex-col overflow-hidden transition-[padding,margin] duration-300 ease-in-out">
           <HeaderBar />
           <ChatList />

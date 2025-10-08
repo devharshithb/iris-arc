@@ -57,6 +57,10 @@ type State = {
 
   // regenerate
   regenerateLast: () => void;
+
+  // NEW: per-message actions
+  deleteMessage: (id: string) => void;
+  regenerateMessage: (id: string) => void;
 };
 
 const initialThread: Thread = {
@@ -235,13 +239,33 @@ export const useAppStore = create<State>((set, get) => ({
   setCanvasWidth: (w) => set({ canvasWidth: w }),
   setComposerHeight: (h) => set({ composerHeight: h }),
 
-  // regenerate mock
+  // regenerate mock (last assistant)
   regenerateLast: () => {
     const tid = get().currentThreadId!;
     const list = get().messages[tid] || [];
     const lastAssistant = [...list].reverse().find((m) => m.role === "assistant");
     if (!lastAssistant) return;
     lastAssistant.parts = [{ kind: "text", text: "" }];
+    set((s) => ({ messages: { ...s.messages, [tid]: [...list] } }));
+    get().startMockStream("Regenerating…");
+  },
+
+  // -------- NEW per-message actions --------
+  deleteMessage: (id) => {
+    const tid = get().currentThreadId;
+    if (!tid) return;
+    set((s) => {
+      const next = (s.messages[tid] || []).filter((m) => m.id !== id);
+      return { messages: { ...s.messages, [tid]: next } };
+    });
+  },
+
+  regenerateMessage: (id) => {
+    const tid = get().currentThreadId!;
+    const list = get().messages[tid] || [];
+    const target = list.find((m) => m.id === id && m.role === "assistant");
+    if (!target) return;
+    target.parts = [{ kind: "text", text: "" }];
     set((s) => ({ messages: { ...s.messages, [tid]: [...list] } }));
     get().startMockStream("Regenerating…");
   },

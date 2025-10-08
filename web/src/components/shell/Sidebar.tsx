@@ -2,14 +2,22 @@
 
 import { useAppStore } from "@/lib/store";
 import { Plus, Menu } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { motion, AnimatePresence, useReducedMotion, easeOut } from "framer-motion";
 
 /**
  * Sidebar
- * - Open background: #181818
- * - Collapsed background: #212121 (same as chat canvas)
- * - Animates internal content (opacity/width), outer width handled by parent layout/grid.
- * - Works fully in both states (new chat + select thread).
+ * - Open bg: var(--surface-sidebar-open)
+ * - Collapsed bg: var(--surface-sidebar-closed)
+ * - Width is still owned by the parent grid (unchanged).
+ * - Framer Motion:
+ *    • Top bar + footer fade/slide on mount/open
+ *    • Threads list items stagger in when opening
  */
 export default function Sidebar() {
   const {
@@ -21,113 +29,177 @@ export default function Sidebar() {
     newThread,
   } = useAppStore();
 
-  const bg = leftSidebarOpen ? "#181818" : "#212121";
+  const bg = leftSidebarOpen
+    ? "var(--surface-sidebar-open)"
+    : "var(--surface-sidebar-closed)";
+  const prefersReduced = useReducedMotion();
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: prefersReduced ? 0 : -6 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.18,
+        ease: easeOut,
+        when: "beforeChildren",
+        staggerChildren: prefersReduced ? 0 : 0.025,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: prefersReduced ? 0 : -8 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.16, ease: easeOut } },
+  };
 
   return (
     <aside
       className="h-dvh flex flex-col border-r transition-colors duration-300 ease-out"
-      style={{ backgroundColor: bg, borderColor: "rgba(255,255,255,0.08)" }}
+      style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }}
     >
       <TooltipProvider delayDuration={80}>
         {/* Top bar */}
-        <div className="flex items-center gap-2 px-3 h-14 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          <button
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="flex items-center gap-2 px-3 h-14 border-b"
+          style={{ borderColor: "var(--border-weak)" }}
+        >
+          <motion.button
+            variants={itemVariants}
             onClick={toggleLeftSidebar}
             className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
             title={leftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            style={{ borderColor: "rgba(255,255,255,0.12)" }}
+            style={{ borderColor: "var(--border-weak)" }}
           >
             <Menu className="h-4 w-4" />
-          </button>
+          </motion.button>
 
-          {/* New chat (full when open, icon+tooltip when collapsed) */}
-          {leftSidebarOpen ? (
-            <button
-              onClick={() => setCurrentThread(newThread())}
-              className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-white/10 transition-colors"
-              title="New chat"
-              style={{ borderColor: "rgba(255,255,255,0.12)" }}
-            >
-              <Plus className="h-4 w-4" />
-              <span className="whitespace-nowrap">New chat</span>
-            </button>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setCurrentThread(newThread())}
-                  className="ml-auto grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
-                  aria-label="New chat"
-                  style={{ borderColor: "rgba(255,255,255,0.12)" }}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">
-                New chat
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+          <AnimatePresence initial={false} mode="popLayout">
+            {leftSidebarOpen ? (
+              <motion.button
+                key="new-full"
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
+                onClick={() => setCurrentThread(newThread())}
+                className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-white/10 transition-colors"
+                title="New chat"
+                style={{ borderColor: "var(--border-weak)" }}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="whitespace-nowrap">New chat</span>
+              </motion.button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button
+                    key="new-icon"
+                    variants={itemVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
+                    onClick={() => setCurrentThread(newThread())}
+                    className="ml-auto grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+                    aria-label="New chat"
+                    style={{ borderColor: "var(--border-weak)" }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  New chat
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Threads */}
         <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
-          {threads.map((t) => {
-            const active = currentThreadId === t.id;
+          <AnimatePresence initial={false} mode="sync">
+            {threads.map((t, idx) => {
+              const active = currentThreadId === t.id;
 
-            if (leftSidebarOpen) {
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setCurrentThread(t.id)}
-                  className={[
-                    "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
-                    active ? "bg-white/10" : "hover:bg-white/5",
-                  ].join(" ")}
-                  title={t.title || "New chat"}
-                >
-                  <span className="block truncate">{t.title || "New chat"}</span>
-                </button>
-              );
-            }
-
-            // Collapsed: show a subtle dot with tooltip
-            return (
-              <Tooltip key={t.id}>
-                <TooltipTrigger asChild>
-                  <button
+              if (leftSidebarOpen) {
+                return (
+                  <motion.button
+                    key={t.id}
+                    layout
+                    variants={itemVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit={{ opacity: 0 }}
+                    transition={{
+                      delay: prefersReduced ? 0 : 0.02 * idx,
+                      type: "tween",
+                      duration: 0.16,
+                    }}
                     onClick={() => setCurrentThread(t.id)}
                     className={[
-                      "w-full rounded-md py-2 grid place-items-center transition-colors",
+                      "w-full text-left rounded-md px-3 py-2 text-sm transition-colors",
                       active ? "bg-white/10" : "hover:bg-white/5",
                     ].join(" ")}
-                    aria-label={t.title || "New chat"}
                     title={t.title || "New chat"}
                   >
-                    <span
-                      className="block h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: active ? "white" : "rgba(255,255,255,0.6)" }}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs max-w-[240px]">
-                  <span className="block truncate">{t.title || "New chat"}</span>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
+                    <span className="block truncate">{t.title || "New chat"}</span>
+                  </motion.button>
+                );
+              }
+
+              // Collapsed: dot with tooltip
+              return (
+                <Tooltip key={t.id}>
+                  <TooltipTrigger asChild>
+                    <motion.button
+                      layout
+                      variants={itemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        delay: prefersReduced ? 0 : 0.02 * idx,
+                        type: "tween",
+                        duration: 0.16,
+                      }}
+                      onClick={() => setCurrentThread(t.id)}
+                      className={[
+                        "w-full rounded-md py-2 grid place-items-center transition-colors",
+                        active ? "bg-white/10" : "hover:bg-white/5",
+                      ].join(" ")}
+                      aria-label={t.title || "New chat"}
+                      title={t.title || "New chat"}
+                    >
+                      <span
+                        className="block h-1.5 w-1.5 rounded-full"
+                        style={{
+                          backgroundColor: active ? "white" : "rgba(255,255,255,0.6)",
+                        }}
+                      />
+                    </motion.button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs max-w-[240px]">
+                    <span className="block truncate">{t.title || "New chat"}</span>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
         {/* Footer */}
-        <div
-          className={[
-            "border-t px-3 py-2 text-[11px] transition-opacity",
-            leftSidebarOpen ? "opacity-60" : "opacity-0",
-          ].join(" ")}
-          style={{ borderColor: "rgba(255,255,255,0.08)" }}
+        <motion.div
+          initial={{ opacity: 0, y: prefersReduced ? 0 : 4 }}
+          animate={{ opacity: leftSidebarOpen ? 0.6 : 0, y: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="border-t px-3 py-2 text-[11px]"
+          style={{ borderColor: "var(--border-weak)" }}
         >
           {leftSidebarOpen ? "Signed in (mock)" : "\u00A0"}
-        </div>
+        </motion.div>
       </TooltipProvider>
     </aside>
   );

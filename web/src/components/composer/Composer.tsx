@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   Plus, Mic, AudioLines, Square, FileText,
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
- * Auto-expanding Composer
+ * Auto-expanding Composer (no initial flash)
  * - Baseline min-height: 127px; grows with text (caps and scrolls).
  * - Width: 50.26% of screen.
  * - Sits 30px above browser bottom.
@@ -23,23 +23,21 @@ const ACCEPT = [
   "image/png", "image/jpeg", "application/json",
 ];
 
-type DraftAttachment = { id: string; name: string; mime: string; size: number };
-
 function fileKind(mime: string, name: string) {
   const lower = name.toLowerCase();
   if (mime === "application/pdf" || lower.endsWith(".pdf"))
-    return { label: "PDF", color: "bg-red-500", chip: "bg-red-500/20 text-red-300", icon: FileText };
+    return { label: "PDF", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileText };
   if (mime.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|svg)$/.test(lower))
-    return { label: "IMG", color: "bg-blue-500", chip: "bg-blue-500/20 text-blue-300", icon: Img };
+    return { label: "IMG", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: Img };
   if (mime === "application/json" || lower.endsWith(".json"))
-    return { label: "JSON", color: "bg-emerald-500", chip: "bg-emerald-500/20 text-emerald-300", icon: FileJson };
+    return { label: "JSON", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileJson };
   if (mime === "text/markdown" || lower.endsWith(".md"))
-    return { label: "MD", color: "bg-violet-500", chip: "bg-violet-500/20 text-violet-300", icon: FileText };
+    return { label: "MD", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileText };
   if (mime === "text/plain" || lower.endsWith(".txt"))
-    return { label: "TXT", color: "bg-zinc-500", chip: "bg-zinc-500/20 text-zinc-200", icon: FileText };
+    return { label: "TXT", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileText };
   if (mime === "text/csv" || lower.endsWith(".csv"))
-    return { label: "CSV", color: "bg-lime-500", chip: "bg-lime-500/20 text-lime-300", icon: FileSpreadsheet };
-  return { label: "FILE", color: "bg-zinc-600", chip: "bg-zinc-500/20 text-zinc-200", icon: FileText };
+    return { label: "CSV", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileSpreadsheet };
+  return { label: "FILE", chip: "color-mix(in oklch, var(--surface-composer), #000 6%)", iconBg: "color-mix(in oklch, var(--surface-composer), #000 30%)", icon: FileText };
 }
 
 const trim = (n: string, max = 28) => (n.length > max ? n.slice(0, max - 6) + "…" + n.slice(-5) : n);
@@ -58,6 +56,7 @@ const TA_MAX_LINES = 8;
 export default function Composer() {
   const [text, setText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [measured, setMeasured] = useState(false); // avoid flash before first measurement
   const dragCounter = useRef(0);
 
   const {
@@ -94,14 +93,18 @@ export default function Composer() {
   const recalcComposerHeight = () => {
     const chipsH = chipsRef.current ? chipsRef.current.offsetHeight : 0;
     const ta = taRef.current;
-    let taH = TEXTAREA_LINE_H; // one-line baseline
+    let taH = TEXTAREA_LINE_H; // baseline
 
     if (ta) {
-      ta.style.height = "auto";
+      // expand-to-fit measurement done BEFORE paint (useLayoutEffect callers)
       const maxTaPx = TEXTAREA_LINE_H * TA_MAX_LINES;
+      // Temporarily unset height to read natural scrollHeight correctly
+      const prevH = ta.style.height;
+      ta.style.height = "0px";
       taH = Math.min(ta.scrollHeight, maxTaPx);
       ta.style.height = `${taH}px`;
       ta.style.overflowY = ta.scrollHeight > maxTaPx ? "auto" : "hidden";
+      // (no need to restore prevH)
     }
 
     const row1Content = chipsH + taH;
@@ -110,16 +113,31 @@ export default function Composer() {
     return total;
   };
 
-  useEffect(() => {
+  /** ======= PREVENT INITIAL FLASH =======
+   * Measure synchronously before paint, set textarea to a single line,
+   * then compute the final height and reveal the composer.
+   */
+  useLayoutEffect(() => {
+    const ta = taRef.current;
+    if (ta) {
+      // Prime textarea to 1 line BEFORE any measurement
+      ta.style.lineHeight = `${TEXTAREA_LINE_H}px`;
+      ta.style.height = `${TEXTAREA_LINE_H}px`;
+      ta.style.overflowY = "hidden";
+      ta.rows = 1;
+    }
     setComposerHeight(MIN_COMPOSER_HEIGHT);
-    requestAnimationFrame(recalcComposerHeight);
+    recalcComposerHeight();
+    setMeasured(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    requestAnimationFrame(recalcComposerHeight);
+  // Recalculate height synchronously whenever width, text, or chips change
+  useLayoutEffect(() => {
+    if (!measured) return;
+    recalcComposerHeight();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftFiles, composerWidth, text]);
+  }, [draftFiles, composerWidth, text, measured]);
 
   // files
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,15 +182,15 @@ export default function Composer() {
     setText("");
     if (taRef.current) {
       taRef.current.value = "";
-      taRef.current.style.height = "auto";
+      taRef.current.style.height = `${TEXTAREA_LINE_H}px`;
       taRef.current.style.overflowY = "hidden";
     }
-    requestAnimationFrame(recalcComposerHeight);
+    recalcComposerHeight();
   };
 
   const onType = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
-    requestAnimationFrame(recalcComposerHeight);
+    // height recalculated in layout effect
   };
 
   useEffect(() => {
@@ -189,13 +207,15 @@ export default function Composer() {
   return (
     <>
       {/* Composer wrapper: 30px from bottom */}
-      <div className="pointer-events-none absolute inset-x-0" style={{ bottom: GAP_TO_BOTTOM, zIndex: 30 }}>
+      <div
+        className="pointer-events-none absolute inset-x-0"
+        style={{ bottom: GAP_TO_BOTTOM, zIndex: 30, visibility: measured ? "visible" : "hidden" }}
+      >
         <TooltipProvider delayDuration={80}>
           <div
             className={[
               "pointer-events-auto relative rounded-[22px] border shadow-lg",
               "px-4 py-2.5 md:px-5 md:py-3",
-              "bg-[#303030]",
               "transition-all duration-150 ease-out",
               isDragging ? "ring-2 ring-white/20" : "",
             ].join(" ")}
@@ -204,6 +224,8 @@ export default function Composer() {
               maxWidth: composerWidth,
               marginInline: "auto",
               willChange: "height,width",
+              backgroundColor: "var(--surface-composer)",
+              borderColor: "var(--border-weak)",
             }}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -221,17 +243,19 @@ export default function Composer() {
                       return (
                         <div
                           key={f.id}
-                          className="group relative rounded-2xl border border-white/10 bg-[#2b2b2b] px-3 py-1.5 text-xs flex items-center gap-2"
+                          className="group relative rounded-2xl border px-3 py-1.5 text-xs flex items-center gap-2"
+                          style={{ backgroundColor: k.chip, borderColor: "var(--border-weak)" }}
                         >
-                          <div className={`grid place-items-center size-6 rounded-md ${k.color} text-white`}>
+                          <div className="grid place-items-center size-6 rounded-md" style={{ backgroundColor: k.iconBg, color: "var(--text-primary)" }}>
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <span className="max-w-[220px] truncate">{trim(f.name, 26)}</span>
                           <button
                             onClick={() => removeDraftFile(f.id)}
-                            className="ml-1 rounded-full border border-white/20 w-5 h-5 grid place-items-center hover:bg-white/10"
+                            className="ml-1 rounded-full border w-5 h-5 grid place-items-center hover:bg-white/10"
                             title="Remove"
                             aria-label="Remove"
+                            style={{ borderColor: "var(--border-weak)" }}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -242,7 +266,8 @@ export default function Composer() {
                     {overflow > 0 && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="shrink-0 rounded-full border border-white/15 w-8 h-8 grid place-items-center text-sm hover:bg-white/10 cursor-default">
+                          <div className="shrink-0 rounded-full border w-8 h-8 grid place-items-center text-sm hover:bg-white/10 cursor-default"
+                               style={{ borderColor: "var(--border-weak)" }}>
                             +{overflow}
                           </div>
                         </TooltipTrigger>
@@ -252,7 +277,7 @@ export default function Composer() {
                               const k = fileKind(f.mime, f.name); const Icon = k.icon;
                               return (
                                 <div key={f.id} className="flex items-center gap-2">
-                                  <div className={`grid place-items-center size-5 rounded ${k.color} text-white`}>
+                                  <div className="grid place-items-center size-5 rounded" style={{ backgroundColor: k.iconBg, color: "var(--text-primary)" }}>
                                     <Icon className="h-3.5 w-3.5" />
                                   </div>
                                   <span className="truncate">{f.name}</span>
@@ -305,9 +330,10 @@ export default function Composer() {
                     <button
                       onClick={!isSendingLocked ? chooseFiles : undefined}
                       disabled={isSendingLocked}
-                      className="grid size-8 place-items-center rounded-full border border-white/15 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="grid size-8 place-items-center rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       aria-label="Add files and more"
                       title={isSendingLocked ? "Disabled while generating" : "Add files and more"}
+                      style={{ border: "1px solid var(--border-weak)" }}
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -319,10 +345,11 @@ export default function Composer() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      className="grid size-8 place-items-center rounded-full border border-white/15 hover:bg-white/10"
+                      className="grid size-8 place-items-center rounded-full hover:bg-white/10"
                       title="Voice (soon)"
                       aria-label="Voice"
                       disabled
+                      style={{ border: "1px solid var(--border-weak)" }}
                     >
                       <Mic className="h-4 w-4 opacity-80" />
                     </button>
@@ -336,9 +363,10 @@ export default function Composer() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => stopStream()}
-                        className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 transition-colors"
+                        className="grid size-9 place-items-center rounded-full hover:bg-white/10 transition-colors"
                         title="Stop"
                         aria-label="Stop"
+                        style={{ border: "1px solid var(--border-weak)" }}
                       >
                         <Square className="h-4 w-4" />
                       </button>
@@ -350,9 +378,10 @@ export default function Composer() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={send}
-                        className="grid size-9 place-items-center rounded-full border border-white/15 hover:bg-white/10 transition-colors"
+                        className="grid size-9 place-items-center rounded-full hover:bg-white/10 transition-colors"
                         title="Send"
                         aria-label="Send"
+                        style={{ border: "1px solid var(--border-weak)" }}
                       >
                         <AudioLines className="h-4 w-4" />
                       </button>
