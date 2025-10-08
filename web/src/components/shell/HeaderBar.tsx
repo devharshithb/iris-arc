@@ -5,32 +5,21 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import SettingsPopover from "@/components/shell/SettingsPopover";
+import ThreadMenu from "@/components/shell/ThreadMenu";
 
-/**
- * HeaderBar with subtle motion
- * - Title fades/slides when the current thread changes
- * - Right controls fade in on mount
- * - Colors continue to come from theme vars
- */
 export default function HeaderBar() {
   const { threads, currentThreadId, toggleRightRail } = useAppStore();
   const thread = useMemo(
     () => threads.find((t) => t.id === currentThreadId),
     [threads, currentThreadId]
   );
-
   const prefersReduced = useReducedMotion();
 
   return (
     <header
-      className="h-14 border-b flex items-center px-3"
-      style={{
-        backgroundColor: "var(--surface-chat)",
-        borderColor: "var(--border-weak)",
-      }}
+      className="h-14 flex items-center px-3 select-none"
+      style={{ backgroundColor: "var(--surface-chat)" }} // no border/divider
     >
-      {/* Title (animate on thread change) */}
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.button
           key={thread?.id || "title-empty"}
@@ -47,7 +36,6 @@ export default function HeaderBar() {
 
       <div className="flex-1" />
 
-      {/* Right controls */}
       <motion.div
         initial={{ opacity: 0, y: prefersReduced ? 0 : -4 }}
         animate={{ opacity: 1, y: 0 }}
@@ -57,12 +45,12 @@ export default function HeaderBar() {
         <ThemeToggle />
         <button
           onClick={toggleRightRail}
-          className="rounded-md border px-2.5 py-1.5 text-sm hover:bg-white/5"
+          className="rounded-md px-2.5 py-1.5 text-sm hover:bg-white/5" // no border
           title="Model / agents"
         >
           <Sparkles className="h-4 w-4" />
         </button>
-        <SettingsPopover />
+        <ThreadMenu /> {/* 3-dot trigger is borderless in its own file below */}
       </motion.div>
     </header>
   );

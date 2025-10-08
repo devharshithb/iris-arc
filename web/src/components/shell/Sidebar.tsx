@@ -2,22 +2,11 @@
 
 import { useAppStore } from "@/lib/store";
 import {
-  Plus,
-  Menu,
-  Search,
-  BookOpen,
-  ScrollText,
-  Bot,
-  FolderPlus,
-  Folder,
-  Pencil,
-  Trash2,
+  Plus, Menu, Search, BookOpen, ScrollText, Bot,
+  FolderPlus, Folder, Pencil, Trash2,
 } from "lucide-react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { motion, AnimatePresence, useReducedMotion, easeOut } from "framer-motion";
@@ -26,10 +15,7 @@ import SearchPanel from "@/components/shell/SearchPanel";
 import ProjectPicker from "@/components/shell/ProjectPicker";
 
 function Item({
-  children,
-  active,
-  onClick,
-  disabled,
+  children, active, onClick, disabled,
 }: {
   children: React.ReactNode;
   active?: boolean;
@@ -45,7 +31,6 @@ function Item({
         active ? "bg-white/10" : "hover:bg-white/5",
         disabled ? "opacity-60 cursor-not-allowed" : "",
       ].join(" ")}
-      style={{ borderColor: "var(--border-weak)" }}
     >
       {children}
     </button>
@@ -54,65 +39,36 @@ function Item({
 
 export default function Sidebar() {
   const {
-    leftSidebarOpen,
-    toggleLeftSidebar,
-    threads,
-    currentThreadId,
-    setCurrentThread,
-    newThread,
-    // projects
-    projects,
-    createProject,
-    renameProject,
-    deleteProject,
-    setProjectFilter,
-    currentProjectFilter,
+    leftSidebarOpen, toggleLeftSidebar,
+    threads, currentThreadId, setCurrentThread, newThread,
+    projects, createProject, renameProject, deleteProject,
+    setProjectFilter, currentProjectFilter,
   } = useAppStore();
 
-  const bg = leftSidebarOpen
-    ? "var(--surface-sidebar-open)"
-    : "var(--surface-sidebar-closed)";
+  const bg = leftSidebarOpen ? "var(--surface-sidebar-open)" : "var(--surface-sidebar-closed)";
   const prefersReduced = useReducedMotion();
   const [searchOpen, setSearchOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0, y: prefersReduced ? 0 : -6 },
     visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.18,
-        ease: easeOut,
-        when: "beforeChildren",
-        staggerChildren: prefersReduced ? 0 : 0.025,
-      },
+      opacity: 1, y: 0,
+      transition: { duration: 0.18, ease: easeOut, when: "beforeChildren", staggerChildren: prefersReduced ? 0 : 0.025 },
     },
   };
-
   const itemVariants = {
     hidden: { opacity: 0, x: prefersReduced ? 0 : -8 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.16, ease: easeOut },
-    },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.16, ease: easeOut } },
   };
 
   const TopIconButton = ({
-    title,
-    onClick,
-    children,
-  }: {
-    title: string;
-    onClick?: () => void;
-    children: React.ReactNode;
-  }) => (
+    title, onClick, children,
+  }: { title: string; onClick?: () => void; children: React.ReactNode }) => (
     <button
       onClick={onClick}
-      className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+      className="grid size-8 place-items-center rounded-md hover:bg-white/10 transition-colors"
       title={title}
       aria-label={title}
-      style={{ borderColor: "var(--border-weak)" }}
     >
       {children}
     </button>
@@ -126,19 +82,17 @@ export default function Sidebar() {
   return (
     <aside
       className="h-dvh flex flex-col border-r transition-colors duration-300 ease-out"
-      style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }}
+      style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }} // keep outer right separator only
     >
       <TooltipProvider delayDuration={80}>
-        {/* Search overlay */}
         <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-        {/* Top bar */}
+        {/* Top bar — NO bottom divider */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={containerVariants}
-          className="flex items-center gap-2 px-3 h-14 border-b"
-          style={{ borderColor: "var(--border-weak)" }}
+          className="flex items-center gap-2 px-3 h-14"
         >
           <motion.div variants={itemVariants}>
             <TopIconButton
@@ -148,50 +102,10 @@ export default function Sidebar() {
               <Menu className="h-4 w-4" />
             </TopIconButton>
           </motion.div>
-
-          <AnimatePresence initial={false} mode="popLayout">
-            {leftSidebarOpen ? (
-              <motion.button
-                key="new-full"
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
-                onClick={() => setCurrentThread(newThread(currentProjectFilter))}
-                className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-white/10 transition-colors"
-                title="New chat"
-                style={{ borderColor: "var(--border-weak)" }}
-              >
-                <Plus className="h-4 w-4" />
-                <span className="whitespace-nowrap">New chat</span>
-              </motion.button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.div
-                    key="new-icon"
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit={{ opacity: 0, y: prefersReduced ? 0 : -6 }}
-                  >
-                    <TopIconButton
-                      title="New chat"
-                      onClick={() => setCurrentThread(newThread(currentProjectFilter))}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </TopIconButton>
-                  </motion.div>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">
-                  New chat
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </AnimatePresence>
+          {/* (No “New chat” in header) */}
         </motion.div>
 
-        {/* Primary nav (Search works) */}
+        {/* Primary nav */}
         <div className="px-2 py-2">
           {leftSidebarOpen ? (
             <div className="space-y-1">
@@ -243,12 +157,9 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Divider */}
-        <div className="px-2">
-          <div className="h-px w-full" style={{ background: "var(--border-weak)" }} />
-        </div>
+        {/* NO mid divider */}
 
-        {/* Projects (folders) with CRUD + filter */}
+        {/* Projects */}
         <div className="px-2 mt-2">
           {leftSidebarOpen ? (
             <>
@@ -268,17 +179,13 @@ export default function Sidebar() {
                 </button>
               </div>
               <div className="space-y-1">
-                {/* All filter */}
                 <Item active={currentProjectFilter === undefined} onClick={() => setProjectFilter(undefined)}>
                   <Folder className="h-4 w-4" />
                   <span>All</span>
                 </Item>
                 {projects.map((p) => (
                   <div key={p.id} className="flex items-center gap-1">
-                    <Item
-                      active={currentProjectFilter === p.id}
-                      onClick={() => setProjectFilter(p.id)}
-                    >
+                    <Item active={currentProjectFilter === p.id} onClick={() => setProjectFilter(p.id)}>
                       <Folder className="h-4 w-4" />
                       <span className="truncate">{p.name}</span>
                     </Item>
@@ -312,13 +219,12 @@ export default function Sidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+                    className="grid size-8 place-items-center rounded-md hover:bg-white/10 transition-colors"
                     title="New project"
                     onClick={() => {
                       const name = prompt("Project name")?.trim();
                       if (name) createProject(name);
                     }}
-                    style={{ borderColor: "var(--border-weak)" }}
                   >
                     <FolderPlus className="h-4 w-4" />
                   </button>
@@ -327,15 +233,13 @@ export default function Sidebar() {
                   New project
                 </TooltipContent>
               </Tooltip>
-              {/* Tap a folder to filter */}
               {projects.slice(0, 8).map((p) => (
                 <Tooltip key={p.id}>
                   <TooltipTrigger asChild>
                     <button
-                      className="grid size-8 place-items-center rounded-md border hover:bg-white/10 transition-colors"
+                      className="grid size-8 place-items-center rounded-md hover:bg-white/10 transition-colors"
                       title={p.name}
                       onClick={() => setProjectFilter(p.id)}
-                      style={{ borderColor: "var(--border-weak)" }}
                     >
                       <Folder className="h-4 w-4" />
                     </button>
@@ -356,11 +260,9 @@ export default function Sidebar() {
               {currentProjectFilter ? "Chats in project" : "Chats"}
             </div>
           )}
-
           <div className="space-y-1">
             {filteredThreads.map((t) => {
               const active = currentThreadId === t.id;
-
               if (leftSidebarOpen) {
                 return (
                   <div key={t.id} className="rounded-md">
@@ -374,15 +276,12 @@ export default function Sidebar() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="block truncate">{t.title || "New chat"}</span>
-                        {/* move to project */}
                         <ProjectPicker threadId={t.id} />
                       </div>
                     </button>
                   </div>
                 );
               }
-
-              // collapsed: dot indicator with tooltip
               return (
                 <Tooltip key={t.id}>
                   <TooltipTrigger asChild>
@@ -397,9 +296,7 @@ export default function Sidebar() {
                     >
                       <span
                         className="block h-1.5 w-1.5 rounded-full"
-                        style={{
-                          backgroundColor: active ? "white" : "rgba(255,255,255,0.6)",
-                        }}
+                        style={{ backgroundColor: active ? "white" : "rgba(255,255,255,0.6)" }}
                       />
                     </button>
                   </TooltipTrigger>
@@ -412,17 +309,11 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div
-          className="mt-auto border-t px-3 py-2 flex items-center gap-2"
-          style={{ borderColor: "var(--border-weak)" }}
-        >
+        {/* Footer — NO top divider */}
+        <div className="mt-auto px-3 py-2 flex items-center gap-2">
           <div
             className="grid place-items-center rounded-full size-7"
-            style={{
-              backgroundColor: "var(--surface-chat)",
-              border: "1px solid var(--border-weak)",
-            }}
+            style={{ backgroundColor: "var(--surface-chat)", border: "1px solid var(--border-weak)" }}
           >
             <span className="text-[12px]">N</span>
           </div>

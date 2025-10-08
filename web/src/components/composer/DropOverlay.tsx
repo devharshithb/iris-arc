@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAppStore } from "@/lib/store";
 
-const ACCEPTED = ["Files"]; // dataTransfer.types includes "Files" for file drags
+const ACCEPTED = ["Files"];
 
 export default function DropOverlay({
-  heroSrc = "/drop-hero.png", // <-- put your file in /public/drop-hero.png
+  heroSrc = "/drop-hero.png", // transparent PNG in /public
   heroAlt = "Drop files",
 }: {
   heroSrc?: string;
@@ -75,28 +75,24 @@ export default function DropOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm ring-2 ring-dashed ring-white/20 animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm animate-in fade-in-0 duration-150"
       aria-hidden="true"
     >
       <div className="absolute inset-0 grid place-items-center">
-        <div className="text-center">
-          <div className="relative mx-auto mb-3">
-            {/* Custom hero image */}
-            <div className="grid place-items-center h-20 w-20 rounded-full bg-black/50 border shadow-lg overflow-hidden"
-                 style={{ borderColor: "var(--border-weak)" }}>
-              <Image
-                src={heroSrc}
-                alt={heroAlt}
-                width={64}
-                height={64}
-                priority
-                draggable={false}
-                style={{ objectFit: "contain" }}
-              />
-            </div>
-          </div>
+        <div className="text-center flex flex-col items-center">
+          {/* Hero image (no background circle) */}
+          <Image
+            src={heroSrc}
+            alt={heroAlt}
+            width={120}
+            height={120}
+            priority
+            draggable={false}
+            className="mb-3 select-none"
+            style={{ objectFit: "contain" }}
+          />
           <div className="text-[22px] font-semibold">Add anything</div>
-          <div className="mt-1 text-sm opacity-80">
+          <div className="mt-1 text-sm opacity-80 max-w-[300px]">
             Drop files anywhere to attach them to the conversation
           </div>
         </div>
