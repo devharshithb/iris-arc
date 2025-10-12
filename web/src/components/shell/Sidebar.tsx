@@ -13,6 +13,7 @@ import { motion, AnimatePresence, useReducedMotion, easeOut } from "framer-motio
 import { useState } from "react";
 import SearchPanel from "@/components/shell/SearchPanel";
 import ProjectPicker from "@/components/shell/ProjectPicker";
+import ProjectDialog from "@/components/shell/ProjectDialog";
 
 function Item({
   children, active, onClick, disabled,
@@ -48,6 +49,7 @@ export default function Sidebar() {
   const bg = leftSidebarOpen ? "var(--surface-sidebar-open)" : "var(--surface-sidebar-closed)";
   const prefersReduced = useReducedMotion();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [projectDlgOpen, setProjectDlgOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0, y: prefersReduced ? 0 : -6 },
@@ -79,20 +81,36 @@ export default function Sidebar() {
     currentProjectFilter === undefined ? true : t.projectId === currentProjectFilter
   );
 
+  const openProjectDialog = () => setProjectDlgOpen(true);
+  const handleCreateProject = (name: string) => {
+    const id = createProject(name);
+    setProjectFilter(id);
+  };
+
+  // 👇 Center the hamburger perfectly when collapsed (remove side padding)
+  const topBarClass = leftSidebarOpen
+    ? "flex items-center gap-2 px-3 h-14"
+    : "grid place-items-center h-14 px-0";
+
   return (
     <aside
       className="h-dvh flex flex-col border-r transition-colors duration-300 ease-out"
-      style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }} // keep outer right separator only
+      style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }}
     >
       <TooltipProvider delayDuration={80}>
         <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <ProjectDialog
+          open={projectDlgOpen}
+          onClose={() => setProjectDlgOpen(false)}
+          onCreate={handleCreateProject}
+        />
 
-        {/* Top bar — NO bottom divider */}
+        {/* Top bar — no divider; perfectly centered when collapsed */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={containerVariants}
-          className="flex items-center gap-2 px-3 h-14"
+          className={topBarClass}
         >
           <motion.div variants={itemVariants}>
             <TopIconButton
@@ -157,24 +175,13 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* NO mid divider */}
-
         {/* Projects */}
         <div className="px-2 mt-2">
           {leftSidebarOpen ? (
             <>
               <div className="px-2 py-1 text-[11px] uppercase tracking-wide opacity-70 flex items-center justify-between">
                 <span>Projects</span>
-                <button
-                  className="text-xs hover:underline"
-                  onClick={() => {
-                    const name = prompt("Project name")?.trim();
-                    if (name) {
-                      const id = createProject(name);
-                      setProjectFilter(id);
-                    }
-                  }}
-                >
+                <button className="text-xs hover:underline" onClick={openProjectDialog}>
                   New
                 </button>
               </div>
@@ -193,8 +200,8 @@ export default function Sidebar() {
                       className="rounded-md p-1 hover:bg-white/10"
                       title="Rename"
                       onClick={() => {
-                        const name = prompt("Rename project", p.name)?.trim();
-                        if (name) renameProject(p.id, name);
+                        const next = prompt("Rename project", p.name)?.trim();
+                        if (next) renameProject(p.id, next);
                       }}
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -221,10 +228,7 @@ export default function Sidebar() {
                   <button
                     className="grid size-8 place-items-center rounded-md hover:bg-white/10 transition-colors"
                     title="New project"
-                    onClick={() => {
-                      const name = prompt("Project name")?.trim();
-                      if (name) createProject(name);
-                    }}
+                    onClick={openProjectDialog}
                   >
                     <FolderPlus className="h-4 w-4" />
                   </button>
@@ -309,7 +313,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Footer — NO top divider */}
+        {/* Footer (no divider) */}
         <div className="mt-auto px-3 py-2 flex items-center gap-2">
           <div
             className="grid place-items-center rounded-full size-7"
