@@ -28,3 +28,8 @@ coverage/
 
 # Build artifacts
 **/*.local
+
+
+# Virtual Environment
+venv/
+__pycache__/

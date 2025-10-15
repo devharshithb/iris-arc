@@ -1,8 +1,8 @@
 "use client";
 
-import { Copy, RefreshCcw, Trash2, Pencil } from "lucide-react";
-import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { Copy, Pencil, RefreshCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MessageToolbar({
   messageId,
@@ -19,7 +19,24 @@ export default function MessageToolbar({
 
   const onCopy = async () => {
     try {
-      await navigator.clipboard.writeText(textContent || "");
+      // 1) Prefer rendered DOM text (exactly what user sees)
+      let text = "";
+      const el = document.getElementById(`msg-${messageId}`);
+      if (el) {
+        text = el.innerText.trim();
+      }
+
+      // 2) Fallback to provided plain content
+      if (!text) {
+        text = (textContent ?? "").toString().trim();
+      }
+
+      if (!text) {
+        toast.error("Nothing to copy");
+        return;
+      }
+
+      await navigator.clipboard.writeText(text);
       toast.success("Copied");
     } catch {
       toast.error("Copy failed");
