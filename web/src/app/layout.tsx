@@ -1,9 +1,9 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,23 +16,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: "Iris Arc",
   description: "Iris Arc — Incident Response Intelligence System · Adaptive Response Core",
   icons: {
-    icon: "/IrisArc-logo.ico", // favicon / tab icon
+    icon: "public/IrisArc-logo.ico",
   },
   openGraph: {
     title: "Iris Arc",
     description: "Adaptive cybersecurity copilot powered by Next.js + FastAPI.",
-    images: ["/IrisArc-logo.ico"],
+    images: ["public/IrisArc-logo.ico"],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Iris Arc",
     description: "Incident Response Intelligence System · Adaptive Response Core",
-    images: ["/IrisArc-logo.ico"],
+    images: ["public/IrisArc-logo.ico"],
   },
 };
+
 
 export default function RootLayout({
   children,
