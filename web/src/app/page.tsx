@@ -1,21 +1,18 @@
 "use client";
 
-import Sidebar from "@/components/shell/Sidebar";
-import HeaderBar from "@/components/shell/HeaderBar";
-import RightRail from "@/components/shell/RightRail";
 import ChatList from "@/components/chat/ChatList";
 import Composer from "@/components/composer/Composer";
 import DropOverlay from "@/components/composer/DropOverlay";
+import HeaderBar from "@/components/shell/HeaderBar";
+import RightRail from "@/components/shell/RightRail";
+import Sidebar from "@/components/shell/Sidebar";
 import { useGlobalHotkeys } from "@/lib/keys";
-import { toast } from "sonner";
 import { useAppStore } from "@/lib/store";
+import { toast } from "sonner";
 
 /**
- * Percentage grid with animation:
- * - Open:  16.96% sidebar / 83.04% chat
- * - Closed: 3.35%  sidebar / 96.65% chat
- * Composer is INSIDE the chat column and will move with it.
- * Colors via CSS vars; original layout/behavior unchanged.
+ * Main Iris Arc layout: Sidebar / Chat / RightRail
+ * with smooth transitions and keyboard shortcuts.
  */
 export default function Page() {
   useGlobalHotkeys({
@@ -27,17 +24,19 @@ export default function Page() {
   const { leftSidebarOpen, rightRailOpen } = useAppStore();
 
   const LEFT_PCT = leftSidebarOpen ? 16.96 : 3.35;
-  const RIGHT_PCT = rightRailOpen ? 0 : 0;
-  const CENTER_PCT = Math.max(0, 100 - LEFT_PCT - RIGHT_PCT);
+  const RIGHT_PX = rightRailOpen ? 320 : 0;
 
-  const gridTemplateColumns =
-    RIGHT_PCT > 0
-      ? `${LEFT_PCT}% ${CENTER_PCT}% ${RIGHT_PCT}%`
-      : `${LEFT_PCT}% ${CENTER_PCT}%`;
+  const gridTemplateColumns = rightRailOpen
+    ? `${LEFT_PCT}% calc(100% - ${LEFT_PCT}% - ${RIGHT_PX}px) ${RIGHT_PX}px`
+    : `${LEFT_PCT}% calc(100% - ${LEFT_PCT}%)`;
 
   return (
-    <div className="h-dvh relative" style={{ backgroundColor: "var(--surface-chat)" }}>
+    <div
+      className="h-dvh relative transition-colors duration-300"
+      style={{ backgroundColor: "var(--surface-chat)" }}
+    >
       <DropOverlay />
+
       <div
         className="grid h-full transition-[grid-template-columns] duration-300 ease-in-out"
         style={{
@@ -45,17 +44,12 @@ export default function Page() {
           willChange: "grid-template-columns",
         }}
       >
-        {/* Sidebar */}
         <Sidebar />
-
-        {/* Chat column */}
         <section className="relative h-full flex flex-col overflow-hidden transition-[padding,margin] duration-300 ease-in-out">
           <HeaderBar />
           <ChatList />
           <Composer />
         </section>
-
-        {/* Optional right rail */}
         {rightRailOpen && <RightRail />}
       </div>
     </div>

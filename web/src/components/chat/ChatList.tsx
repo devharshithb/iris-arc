@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useAppStore } from "@/lib/store";
 import ChatMessage from "@/components/chat/ChatMessage";
+import LandingTiles from "@/components/chat/LandingTiles";
+import { useAppStore } from "@/lib/store";
 import { ArrowDown } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/** Keep in sync with Composer width/padding */
+/**
+ * ChatList
+ * - Displays messages or LandingTiles when empty.
+ * - Handles pinned scrolling, jump-to-latest button, and dynamic bottom padding.
+ */
+
 const WIDTH_RATIO = 0.5026; // outer composer width ratio
 const PAD_X = 20;           // inner horizontal padding per side (px-5 ≈ 20px)
 
-/** Bottom spacing model (hard guarantee: nothing peeks under composer) */
-const GAP_TO_BOTTOM = 30;    // composer offset from browser bottom
-const FOOTER_BUFFER = 24;    // “IrisArc can make mistakes…” line
-const PEEK_GUARD = 140;      // extra clearance beyond composer height
-const BOTTOM_VIS_TOL = 8;    // px tolerance to consider “at bottom”
+const GAP_TO_BOTTOM = 30;   // composer offset from browser bottom
+const FOOTER_BUFFER = 24;   // “IrisArc can make mistakes…” line
+const PEEK_GUARD = 140;     // extra clearance beyond composer height
+const BOTTOM_VIS_TOL = 8;   // px tolerance to consider “at bottom”
 
 type TokenEvent = CustomEvent<{ index: number; batch: number }>;
 
@@ -24,14 +29,13 @@ export default function ChatList() {
   );
 
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const canvasRef   = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   const [screenW, setScreenW] = useState(0);
   const [showJump, setShowJump] = useState(false);
 
-  // autoscroll only when pinned to bottom
   const pinnedRef = useRef(true);
-  const prevHRef  = useRef(0);
+  const prevHRef = useRef(0);
 
   /* ---------- sizing ---------- */
   useEffect(() => {
@@ -41,7 +45,6 @@ export default function ChatList() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Match composer inner content width (outer – inner padding)
   const messageMaxWidth = Math.max(
     320,
     Math.floor(screenW * WIDTH_RATIO) - PAD_X * 2
@@ -75,11 +78,11 @@ export default function ChatList() {
     const prev = prevHRef.current;
     const next = el.scrollHeight;
     const delta = next - prev;
-    if (delta > 0) el.scrollTop += delta; // keep generating line fixed
+    if (delta > 0) el.scrollTop += delta;
     prevHRef.current = next;
   };
 
-  /* ---------- base scroll listener ---------- */
+  /* ---------- scroll listener ---------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -114,13 +117,14 @@ export default function ChatList() {
       const detail = (e as TokenEvent).detail;
       if (!pinnedRef.current) return;
       const every = detail?.batch ?? 8;
-      const idx   = detail?.index ?? 1;
+      const idx = detail?.index ?? 1;
       if (idx % every !== 0) return;
       requestAnimationFrame(() => stickByDelta(el));
     };
 
     window.addEventListener("iris-token", onToken as EventListener);
-    return () => window.removeEventListener("iris-token", onToken as EventListener);
+    return () =>
+      window.removeEventListener("iris-token", onToken as EventListener);
   }, []);
 
   /* ---------- Jump-to-bottom ---------- */
@@ -146,8 +150,13 @@ export default function ChatList() {
           style={{ paddingBottom: bottomPadding }}
         >
           {list.length === 0 ? (
-            <div className="h-[60vh] grid place-items-center opacity-70">
-              Start a new conversation…
+            <div className="h-[70vh] grid place-items-center">
+              <div
+                className="text-center space-y-6"
+                style={{ maxWidth: messageMaxWidth }}
+              >
+                <LandingTiles />
+              </div>
             </div>
           ) : (
             list.map((m) => (
