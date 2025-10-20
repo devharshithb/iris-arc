@@ -3,6 +3,26 @@
 import ConfirmDialog from "@/components/shell/ConfirmDialog";
 import ProjectDialog from "@/components/shell/ProjectDialog";
 import SearchPanel from "@/components/shell/SearchPanel";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import {
+  Archive,
+  ChevronDown,
+  Folder,
+  FolderPlus,
+  HelpCircle,
+  LogOut,
+  Menu,
+  MoreHorizontal,
+  Move,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Share2,
+  Trash2,
+  UserCircle,
+} from "lucide-react";
+
 import {
   Tooltip,
   TooltipContent,
@@ -22,21 +42,7 @@ import {
   motion,
   useReducedMotion,
 } from "framer-motion";
-import {
-  Archive,
-  ChevronDown,
-  Folder,
-  FolderPlus,
-  Menu,
-  MoreHorizontal,
-  Move,
-  Pencil,
-  Plus,
-  Search,
-  Share2,
-  Trash2,
-  UserCircle,
-} from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -117,6 +123,7 @@ export default function Sidebar() {
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const { data: session } = useSession();
 
   const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -165,7 +172,11 @@ export default function Sidebar() {
       <TooltipTrigger asChild>
         <button
           onClick={onClick}
-          className="grid size-8 place-items-center rounded-md border border-white/20 hover:border-white/40 hover:bg-white/10 transition-colors"
+          className="grid size-8 place-items-center rounded-md border 
+          border-[color-mix(in_oklch,var(--text-primary),transparent_80%)] 
+          hover:border-[color-mix(in_oklch,var(--text-primary),transparent_60%)] 
+          hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_95%)] 
+          transition-colors"
         >
           {children}
         </button>
@@ -175,6 +186,7 @@ export default function Sidebar() {
       </TooltipContent>
     </Tooltip>
   );
+
 
   /* ----------------------------- Handlers ----------------------------- */
   const handleNewChat = () => {
@@ -256,6 +268,7 @@ export default function Sidebar() {
           onCreate={(n) => createProject(n)}
         />
 
+        {/* Header */}
         <motion.div
           initial="hidden"
           animate="visible"
@@ -270,6 +283,7 @@ export default function Sidebar() {
           </IconButton>
         </motion.div>
 
+        {/* Main content */}
         {leftSidebarOpen ? (
           <DragDropContext onDragEnd={onDragEnd}>
             <div className="px-2 py-2 space-y-1">
@@ -431,6 +445,7 @@ export default function Sidebar() {
             </div>
           </DragDropContext>
         ) : (
+          // Collapsed: just the top quick actions. NO account control here.
           <div className="flex flex-col justify-between h-full">
             <div className="flex flex-col items-center gap-2 mt-4">
               <IconButton title="New chat" onClick={handleNewChat}>
@@ -440,14 +455,10 @@ export default function Sidebar() {
                 <Search className="h-4 w-4" />
               </IconButton>
             </div>
-            <div className="flex flex-col items-center mb-3">
-              <IconButton title="Account">
-                <UserCircle className="h-4 w-4" />
-              </IconButton>
-            </div>
           </div>
         )}
 
+        {/* Confirm dialog */}
         <ConfirmDialog
           open={confirmDeleteOpen}
           title="Delete project?"
@@ -469,6 +480,148 @@ export default function Sidebar() {
             setProjectToDelete(null);
           }}
         />
+
+        {/* --------------------- Single Bottom Account Menu --------------------- */}
+        {leftSidebarOpen ? (
+          // Expanded
+          <div className="mt-auto border-t border-[var(--border-weak)] pt-1">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_95%)] transition rounded-md">
+                  <div className="flex items-center gap-2 truncate">
+                    {session?.user?.image ? (
+                      <img
+                        src={session.user.image}
+                        alt="profile"
+                        className="w-7 h-7 rounded-full"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-[color-mix(in_oklch,var(--text-primary),transparent_90%)] grid place-items-center text-xs font-medium text-[var(--text-primary)]/80">
+                        {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                    )}
+                    <div className="flex flex-col leading-tight text-left">
+                      <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                        {session?.user?.name ?? "Guest"}
+                      </span>
+                      <span className="text-[11.5px] opacity-70 truncate text-[var(--text-primary)]">
+                        {session?.user?.email ?? ""}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 opacity-60 text-[var(--text-primary)]" />
+                </button>
+              </DropdownMenu.Trigger>
+
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-[9999] w-56 rounded-lg border border-[var(--border-weak)] bg-[var(--surface-sidebar-open)] text-[var(--text-primary)] shadow-xl backdrop-blur-md p-1 text-sm"
+                >
+                  <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer">
+                    <Settings className="h-4 w-4 opacity-80 text-[var(--text-primary)]" /> Settings
+                  </DropdownMenu.Item>
+
+                  <a
+                    href="mailto:code.harshithb@gmail.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                  >
+                    ✉️ Contact Developer
+                  </a>
+
+                  <a
+                    href="https://github.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                  >
+                    💻 View on GitHub
+                  </a>
+
+                  <DropdownMenu.Separator className="my-1 border-t border-[var(--border-weak)]" />
+
+                  <DropdownMenu.Item
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4" /> Log out
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        ) : (
+          // Collapsed
+          <div className="flex flex-col items-center mb-2 border-t border-[var(--border-weak)] pt-3">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  title="Account"
+                  className="rounded-full bg-transparent hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_90%)] p-1.5 transition"
+                >
+                  {session?.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt="Profile"
+                      className="w-7 h-7 rounded-full"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : session?.user?.name ? (
+                    <div className="w-7 h-7 rounded-full bg-[color-mix(in_oklch,var(--text-primary),transparent_90%)] grid place-items-center text-xs font-medium text-[var(--text-primary)]/80">
+                      {session.user.name[0].toUpperCase()}
+                    </div>
+                  ) : (
+                    <UserCircle className="h-6 w-6 opacity-80 text-[var(--text-primary)]" />
+                  )}
+                </button>
+              </DropdownMenu.Trigger>
+
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  side="top"
+                  sideOffset={8}
+                  className="z-[9999] w-56 rounded-lg border border-[var(--border-weak)] bg-[var(--surface-sidebar-open)] text-[var(--text-primary)] shadow-xl backdrop-blur-md p-1 text-sm"
+                >
+                  <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer">
+                    <Settings className="h-4 w-4 opacity-80 text-[var(--text-primary)]" /> Settings
+                  </DropdownMenu.Item>
+
+                  <a
+                    href="mailto:code.harshithb@gmail.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                  >
+                    ✉️ Contact Developer
+                  </a>
+
+                  <a
+                    href="https://github.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                  >
+                    💻 View on GitHub
+                  </a>
+
+                  <DropdownMenu.Separator className="my-1 border-t border-[var(--border-weak)]" />
+
+                  <DropdownMenu.Item
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4" /> Log out
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        )}
       </TooltipProvider>
     </aside>
   );
@@ -775,22 +928,20 @@ function ChatRow({
                       className={`h-3 w-3 transition ${subMenuForMove === t.id ? "rotate-90" : ""}`}
                     />
                   </button>
+
                   {/* Remove from project */}
                   {t.projectId && (
-                    <>
-                      <button
-                        onClick={() => {
-                          assignThreadToProject(t.id, undefined);
-                          setOpenMenuId(null);
-                          toast.success("Removed from project");
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
-                      >
-                        ↩ Remove from project
-                      </button>
-                    </>
+                    <button
+                      onClick={() => {
+                        assignThreadToProject(t.id, undefined);
+                        setOpenMenuId(null);
+                        toast.success("Removed from project");
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
+                    >
+                      ↩ Remove from project
+                    </button>
                   )}
-
 
                   <AnimatePresence>
                     {subMenuForMove === t.id && flyoutPos && (
