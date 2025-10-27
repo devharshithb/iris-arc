@@ -1,6 +1,6 @@
 "use client";
 
-import ConfirmDialog from "@/components/shell/ConfirmDialog";
+import ConfirmDialog from "@/components/shell/ConfirmDialog"; // This line is already correct
 import ProjectDialog from "@/components/shell/ProjectDialog";
 import SearchPanel from "@/components/shell/SearchPanel";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
