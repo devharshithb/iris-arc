@@ -137,10 +137,14 @@ NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 ### Backend (`backend/.env`)
 
 ```bash
-GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret_key
-NEXTAUTH_SECRET=your_secret_key
-NEXTAUTH_URL=http://localhost:3000
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB=iris_arc
+JWT_SECRET=your_secret_key
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=10080
+FRONTEND_ORIGIN=http://localhost:3000
+SHOW_DEV_OTP=1
+
 
 ```
 
