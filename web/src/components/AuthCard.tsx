@@ -5,19 +5,93 @@ import { Chrome, Loader2, Lock, LogIn, Mail, User } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://127.0.0.1:8000";
 
 export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
    const router = useRouter();
    const [loading, setLoading] = useState(false);
+   const [gLoading, setGLoading] = useState(false);
+
+   const [name, setName] = useState("");
+   const [email, setEmail] = useState("");
+   const [password, setPassword] = useState("");
 
    const handleGoogleSignIn = async () => {
-      setLoading(true);
+      setGLoading(true);
       try {
-         // ✅ NextAuth v5+ uses `redirectTo` instead of `callbackUrl`
-         await signIn("google", { callbackUrl: "/" }); // v4 uses callbackUrl
+         await signIn("google", { callbackUrl: "/" });
       } catch (err) {
          console.error("Google Sign-in error:", err);
+         toast.error("Google Sign-in failed");
+         setGLoading(false);
+      }
+   };
+
+   const doCredentialsLogin = async () => {
+      setLoading(true);
+      const res = await signIn("credentials", {
+         redirect: false,
+         email,
+         password,
+      });
+      setLoading(false);
+
+      if (res?.ok) {
+         toast.success("Logged in");
+         router.replace("/");
+      } else {
+         toast.error("Invalid credentials");
+      }
+   };
+
+   const doSignupThenLogin = async () => {
+      setLoading(true);
+      try {
+         const r = await fetch(`${BACKEND}/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+         });
+         if (!r.ok) {
+            const msg = await safeError(r);
+            throw new Error(msg || "Signup failed");
+         }
+         // After signup, log in via NextAuth credentials provider
+         const res = await signIn("credentials", {
+            redirect: false,
+            email,
+            password,
+         });
+         if (res?.ok) {
+            toast.success("Account created");
+            router.replace("/");
+         } else {
+            throw new Error("Auto-login failed after signup");
+         }
+      } catch (e: any) {
+         console.error(e);
+         toast.error(e.message || "Signup error");
+      } finally {
          setLoading(false);
+      }
+   };
+
+   const onSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!email || !password) {
+         toast.error("Email and password required");
+         return;
+      }
+      if (mode === "signup") {
+         if (!name.trim()) {
+            toast.error("Name required");
+            return;
+         }
+         doSignupThenLogin();
+      } else {
+         doCredentialsLogin();
       }
    };
 
@@ -36,10 +110,10 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
             <div className="space-y-3 mb-5">
                <button
                   onClick={handleGoogleSignIn}
-                  disabled={loading}
+                  disabled={gLoading}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 py-2 text-sm hover:bg-white/10 transition-colors"
                >
-                  {loading ? (
+                  {gLoading ? (
                      <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                      <Chrome className="h-4 w-4 text-[#ea4335]" />
@@ -53,20 +127,17 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
                <span className="relative bg-neutral-900/60 px-2">or</span>
             </div>
 
-            <form
-               onSubmit={(e) => {
-                  e.preventDefault();
-                  router.push("/"); // mock form until custom signup logic
-               }}
-               className="space-y-3"
-            >
+            <form onSubmit={onSubmit} className="space-y-3">
                {mode === "signup" && (
                   <div className="flex items-center gap-2 rounded-md bg-white/5 px-3 py-2">
                      <User className="h-4 w-4 opacity-60" />
                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         type="text"
                         placeholder="Full name"
                         className="w-full bg-transparent text-sm outline-none placeholder-white/50"
+                        autoComplete="name"
                      />
                   </div>
                )}
@@ -74,26 +145,33 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
                <div className="flex items-center gap-2 rounded-md bg-white/5 px-3 py-2">
                   <Mail className="h-4 w-4 opacity-60" />
                   <input
+                     value={email}
+                     onChange={(e) => setEmail(e.target.value)}
                      type="email"
                      placeholder="Email"
                      className="w-full bg-transparent text-sm outline-none placeholder-white/50"
+                     autoComplete="email"
                   />
                </div>
 
                <div className="flex items-center gap-2 rounded-md bg-white/5 px-3 py-2">
                   <Lock className="h-4 w-4 opacity-60" />
                   <input
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
                      type="password"
                      placeholder="Password"
                      className="w-full bg-transparent text-sm outline-none placeholder-white/50"
+                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   />
                </div>
 
                <button
                   type="submit"
-                  className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2 text-sm font-semibold hover:bg-neutral-200 transition"
+                  disabled={loading}
+                  className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg bg-white text-black py-2 text-sm font-semibold hover:bg-neutral-200 transition disabled:opacity-60"
                >
-                  <LogIn className="h-4 w-4" />
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
                   {mode === "login" ? "Continue" : "Create account"}
                </button>
             </form>
@@ -102,20 +180,14 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
                {mode === "login" ? (
                   <>
                      Don’t have an account?{" "}
-                     <a
-                        href="/signup"
-                        className="text-white hover:underline font-medium"
-                     >
+                     <a href="/signup" className="text-white hover:underline font-medium">
                         Sign up
                      </a>
                   </>
                ) : (
                   <>
                      Already have an account?{" "}
-                     <a
-                        href="/login"
-                        className="text-white hover:underline font-medium"
-                     >
+                     <a href="/login" className="text-white hover:underline font-medium">
                         Log in
                      </a>
                   </>
@@ -124,4 +196,18 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
          </motion.div>
       </div>
    );
+}
+
+async function safeError(r: Response) {
+   try {
+      const t = await r.text();
+      try {
+         const j = JSON.parse(t);
+         return j?.detail || j?.message || t;
+      } catch {
+         return t;
+      }
+   } catch {
+      return "Unknown error";
+   }
 }

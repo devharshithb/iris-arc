@@ -1,19 +1,34 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 
+/**
+ * Extend the built-in Session and JWT types
+ * so TypeScript recognizes `session.backend`
+ * and `token.backend` from our NextAuth config.
+ */
 declare module "next-auth" {
   interface Session {
-    user: {
-      id?: string;
-      email?: string | null;
-      name?: string | null;
-      image?: string | null;
-    } & DefaultSession["user"];
+    backend?: {
+      accessToken: string | null;
+      refreshToken: string | null;
+    };
   }
 
-  interface User {
+  interface User extends DefaultUser {
     id?: string;
-    email?: string | null;
-    name?: string | null;
-    image?: string | null;
+    name?: string;
+    email?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    backend?: {
+      accessToken: string | null;
+      refreshToken: string | null;
+    };
+    id?: string;
+    name?: string;
+    email?: string;
+    picture?: string;
   }
 }

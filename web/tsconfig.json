@@ -24,6 +24,7 @@
         "./src/*"
       ]
     },
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     /* Next.js recommended */
     "plugins": [
       {

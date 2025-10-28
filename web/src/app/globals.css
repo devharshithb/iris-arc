@@ -130,3 +130,34 @@ hr {
 .shadow-elevated {
   box-shadow: var(--shadow-elevated);
 }
+
+/* --- Sidebar expand / collapse (content-only fade) --- */
+@keyframes sidebarExpand {
+  from { transform: translateX(-8px); }
+  to   { transform: translateX(0); }
+}
+@keyframes sidebarCollapse {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-8px); }
+}
+
+These control smooth width + transform, but preserve bg color
+.sidebar-open,
+.sidebar-closed {
+  animation-duration: 0.25s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+  will-change: transform;
+}
+
+/* Apply correct direction */
+.sidebar-open { animation-name: sidebarExpand; }
+.sidebar-closed { animation-name: sidebarCollapse; }
+
+/* --- Avatar pop (unchanged) --- */
+@keyframes avatarPop {
+  0%   { transform: translateY(4px) scale(0.9); opacity: 0.6; }
+  80%  { transform: translateY(-2px) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+.avatar-pop { animation: avatarPop 0.3s ease-out forwards; }

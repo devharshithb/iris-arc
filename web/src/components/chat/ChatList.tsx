@@ -23,10 +23,17 @@ const BOTTOM_VIS_TOL = 8;   // px tolerance to consider “at bottom”
 type TokenEvent = CustomEvent<{ index: number; batch: number }>;
 
 export default function ChatList() {
-  const { currentThreadId, setCanvasWidth, composerHeight } = useAppStore();
-  const list = useAppStore((s) =>
-    currentThreadId ? (s.messages[currentThreadId] || []) : []
-  );
+  // ✅ FIX: useAppStore only once to avoid unstable selector loops
+  const { currentThreadId, messages, setCanvasWidth, composerHeight } =
+    useAppStore((s) => ({
+      currentThreadId: s.currentThreadId,
+      messages: s.messages,
+      setCanvasWidth: s.setCanvasWidth,
+      composerHeight: s.composerHeight,
+    }));
+
+  // ✅ derive outside store to prevent re-subscribing
+  const list = currentThreadId ? messages[currentThreadId] || [] : [];
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);

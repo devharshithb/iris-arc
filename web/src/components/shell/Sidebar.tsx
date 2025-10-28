@@ -189,8 +189,8 @@ export default function Sidebar() {
 
 
   /* ----------------------------- Handlers ----------------------------- */
-  const handleNewChat = () => {
-    const id = newThread(undefined);
+  const handleNewChat = async () => {
+    const id = await newThread(undefined);
     setCurrentThread(id);
   };
 
@@ -1019,3 +1019,7 @@ function ChatRow({
     </Draggable>
   );
 }
+function newThread(undefined: undefined) {
+  throw new Error("Function not implemented.");
+}
+

@@ -47,7 +47,6 @@ export default function Sidebar() {
    const { data: session } = useSession();
    const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-   /* ------------------------- click outside for menus ------------------------- */
    useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
          for (const el of menuRefs.current.values()) {
@@ -60,7 +59,6 @@ export default function Sidebar() {
       return () => document.removeEventListener("mousedown", handleClickOutside);
    }, []);
 
-   /* ---------------------------- inline chat rename --------------------------- */
    const handleInlineChatRename = (id: string, value: string) => {
       const v = value.trim();
       if (!v) return setEditingChatId(null);
@@ -72,7 +70,6 @@ export default function Sidebar() {
       setEditingChatId(null);
    };
 
-   /* ---------------------------------- delete --------------------------------- */
    const handleDeleteChat = (id: string) => {
       useAppStore.setState((s) => ({
          threads: s.threads.filter((t) => t.id !== id),
@@ -80,7 +77,6 @@ export default function Sidebar() {
       toast.success("Chat deleted successfully");
    };
 
-   /* ----------------------------- sorted threads ------------------------------ */
    const sortedThreads = useMemo<Chat[]>(
       () => [...threads].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)),
       [threads]
@@ -97,7 +93,6 @@ export default function Sidebar() {
       return map;
    }, [sortedThreads]);
 
-   /* ----------------------------- drag and drop ------------------------------ */
    const onDragEnd = (result: DropResult) => {
       const { destination, draggableId } = result;
       if (!destination) return;
@@ -113,31 +108,31 @@ export default function Sidebar() {
       assignThreadToProject(draggableId, newProjectId);
       toast.success(
          newProjectId
-            ? `Moved to ${projects.find((p: Project) => p.id === newProjectId)?.name ||
-            "project"
+            ? `Moved to ${projects.find((p: Project) => p.id === newProjectId)?.name || "project"
             }`
             : "Moved to All Chats"
       );
    };
 
-   const handleNewChat = () => {
-      const id = newThread(undefined);
+   const handleNewChat = async () => {
+      toast.loading("Creating chat...");
+      const id = await newThread(undefined);
       setCurrentThread(id);
+      toast.dismiss();
+      toast.success("New chat ready!");
    };
+
+
 
    const bg = leftSidebarOpen
       ? "var(--surface-sidebar-open)"
       : "var(--surface-sidebar-closed)";
 
-   /* -------------------------------------------------------------------------- */
-   /*                                   render                                   */
-   /* -------------------------------------------------------------------------- */
    return (
       <aside
          className="h-dvh flex flex-col border-r transition-colors duration-300 ease-out"
          style={{ backgroundColor: bg, borderColor: "var(--border-weak)" }}
       >
-         {/* dialogs */}
          <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
          <ProjectDialog
             open={projectDlgOpen}
@@ -145,7 +140,6 @@ export default function Sidebar() {
             onCreate={(n: string) => createProject(n)}
          />
 
-         {/* header */}
          <SidebarHeader
             leftSidebarOpen={leftSidebarOpen}
             toggleLeftSidebar={toggleLeftSidebar}
@@ -171,7 +165,7 @@ export default function Sidebar() {
                      setConfirmDeleteOpen={setConfirmDeleteOpen}
                      setProjectToDelete={setProjectToDelete}
                      menuRefs={menuRefs}
-                     currentThreadId={currentThreadId ?? null} // ✅ normalized
+                     currentThreadId={currentThreadId ?? null}
                      editingChatId={editingChatId}
                      chatEditValue={chatEditValue}
                      setEditingChatId={setEditingChatId}
@@ -267,12 +261,80 @@ export default function Sidebar() {
             }}
          />
 
-         {/* account menu */}
-         <div className="mt-auto border-t border-[var(--border-weak)] pt-2">
-            <DropdownMenu.Root>
-               <DropdownMenu.Trigger asChild>
-                  <button className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_95%)] transition rounded-md">
-                     <div className="flex items-center gap-2 truncate">
+         {/* account bar */}
+         <div className="mt-auto border-t border-[var(--border-weak)] pt-2 px-2 pb-3">
+            {leftSidebarOpen ? (
+               <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                     <button className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_95%)] transition rounded-md">
+                        <div className="flex items-center gap-2 truncate">
+                           {session?.user?.image ? (
+                              <img
+                                 src={session.user.image}
+                                 alt="profile"
+                                 className="w-7 h-7 rounded-full"
+                                 referrerPolicy="no-referrer"
+                              />
+                           ) : (
+                              <div className="w-7 h-7 rounded-full bg-[color-mix(in_oklch,var(--text-primary),transparent_90%)] grid place-items-center text-xs font-medium text-[var(--text-primary)]/80">
+                                 {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
+                              </div>
+                           )}
+                           <div className="flex flex-col leading-tight text-left">
+                              <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                                 {session?.user?.name ?? "Guest"}
+                              </span>
+                              <span className="text-[11.5px] opacity-70 truncate text-[var(--text-primary)]">
+                                 {session?.user?.email ?? ""}
+                              </span>
+                           </div>
+                        </div>
+                     </button>
+                  </DropdownMenu.Trigger>
+
+                  <DropdownMenu.Portal>
+                     <DropdownMenu.Content
+                        align="end"
+                        sideOffset={6}
+                        className="z-[9999] w-56 rounded-lg border border-[var(--border-weak)] bg-[var(--surface-sidebar-open)] text-[var(--text-primary)] shadow-xl backdrop-blur-md p-1 text-sm"
+                     >
+                        {/* menu items unchanged */}
+                        <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer">
+                           <Settings className="h-4 w-4 opacity-80" /> Settings
+                        </DropdownMenu.Item>
+                        <a
+                           href="mailto:code.harshithb@gmail.com"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                        >
+                           ✉️ Contact Developer
+                        </a>
+                        <a
+                           href="https://github.com/"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                        >
+                           💻 View on GitHub
+                        </a>
+                        <DropdownMenu.Separator className="my-1 border-t border-[var(--border-weak)]" />
+                        <DropdownMenu.Item
+                           onClick={() => signOut({ callbackUrl: "/login" })}
+                           className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer"
+                        >
+                           <LogOut className="h-4 w-4" /> Log out
+                        </DropdownMenu.Item>
+                     </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+               </DropdownMenu.Root>
+            ) : (
+               <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                     <button
+                        title={session?.user?.name ?? "Account"}
+                        className="grid size-9 place-items-center rounded-full hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_95%)] transition relative -mb-1"
+                     >
                         {session?.user?.image ? (
                            <img
                               src={session.user.image}
@@ -285,54 +347,48 @@ export default function Sidebar() {
                               {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
                            </div>
                         )}
-                        <div className="flex flex-col leading-tight text-left">
-                           <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                              {session?.user?.name ?? "Guest"}
-                           </span>
-                           <span className="text-[11.5px] opacity-70 truncate text-[var(--text-primary)]">
-                              {session?.user?.email ?? ""}
-                           </span>
-                        </div>
-                     </div>
-                  </button>
-               </DropdownMenu.Trigger>
+                     </button>
+                  </DropdownMenu.Trigger>
 
-               <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                     align="end"
-                     sideOffset={6}
-                     className="z-[9999] w-56 rounded-lg border border-[var(--border-weak)] bg-[var(--surface-sidebar-open)] text-[var(--text-primary)] shadow-xl backdrop-blur-md p-1 text-sm"
-                  >
-                     <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer">
-                        <Settings className="h-4 w-4 opacity-80" /> Settings
-                     </DropdownMenu.Item>
-                     <a
-                        href="mailto:code.harshithb@gmail.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                  <DropdownMenu.Portal>
+                     <DropdownMenu.Content
+                        align="end"
+                        sideOffset={6}
+                        className="z-[9999] w-56 rounded-lg border border-[var(--border-weak)] bg-[var(--surface-sidebar-open)] text-[var(--text-primary)] shadow-xl backdrop-blur-md p-1 text-sm"
                      >
-                        ✉️ Contact Developer
-                     </a>
-                     <a
-                        href="https://github.com/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
-                     >
-                        💻 View on GitHub
-                     </a>
-                     <DropdownMenu.Separator className="my-1 border-t border-[var(--border-weak)]" />
-                     <DropdownMenu.Item
-                        onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer"
-                     >
-                        <LogOut className="h-4 w-4" /> Log out
-                     </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-               </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+                        {/* same menu items */}
+                        <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer">
+                           <Settings className="h-4 w-4 opacity-80" /> Settings
+                        </DropdownMenu.Item>
+                        <a
+                           href="mailto:code.harshithb@gmail.com"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                        >
+                           ✉️ Contact Developer
+                        </a>
+                        <a
+                           href="https://github.com/"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="flex items-center gap-2 px-3 py-2 hover:bg-[color-mix(in_oklch,var(--text-primary),transparent_92%)] rounded-md cursor-pointer"
+                        >
+                           💻 View on GitHub
+                        </a>
+                        <DropdownMenu.Separator className="my-1 border-t border-[var(--border-weak)]" />
+                        <DropdownMenu.Item
+                           onClick={() => signOut({ callbackUrl: "/login" })}
+                           className="flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 rounded-md cursor-pointer"
+                        >
+                           <LogOut className="h-4 w-4" /> Log out
+                        </DropdownMenu.Item>
+                     </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+               </DropdownMenu.Root>
+            )}
          </div>
+
       </aside>
    );
 }
