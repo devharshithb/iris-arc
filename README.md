@@ -127,7 +127,7 @@ iris-arc/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone git@github.com:<your-username>/iris-arc.git
+git clone git@github.com:devharshithb/iris-arc.git
 cd iris-arc
 ```
 
