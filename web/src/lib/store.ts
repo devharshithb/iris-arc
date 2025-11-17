@@ -21,11 +21,10 @@ const rid = (p = "m") => `${p}${Math.random().toString(36).slice(2, 8)}`;
 const STREAM_BATCH_SIZE = 8;
 
 /**
- * ✅ Backend base URL: includes /api automatically.
- * Make sure this matches your FastAPI mount (prefix="/api")
+ * ✅ Backend base URL for streaming endpoint
  */
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://127.0.0.1:8000/api";
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://127.0.0.1:8000";
 
 const PERSIST_ASSISTANT_ON_FINISH = true;
 
@@ -214,8 +213,7 @@ export const useAppStore = createWithEqualityFn<State>()(
       /* ---------------- Auth & Logout ---------------- */
       logout: () => {
         console.log("🔒 Logging out → clearing tokens & store");
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        // No need to clear localStorage tokens since we use NextAuth session
         useAppStore.persist.clearStorage(); // clear persisted Zustand
         set({
           threads: [initialThread],
@@ -358,7 +356,7 @@ export const useAppStore = createWithEqualityFn<State>()(
         let buffer = "";
         try {
           // ✅ Correct stream endpoint
-          const res = await fetch(`${BASE_URL}/chat/stream`, {
+          const res = await fetch(`${BASE_URL}/api/chat/stream`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt: seedText || "" }),

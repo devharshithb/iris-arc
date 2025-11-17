@@ -21,7 +21,7 @@ class UserPublic(BaseModel):
 class AuthSignupIn(BaseModel):
     """Used for both credential signup and Google sync."""
     email: EmailStr
-    name: Optional[str] = Field(default="", min_length=0, max_length=120)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 

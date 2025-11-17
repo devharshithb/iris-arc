@@ -1,24 +1,26 @@
 "use client";
 
 import type { Message, Thread } from "@/lib/types";
+import { getSession } from "next-auth/react";
 
 /* -------------------------------------------------------------------------- */
 /*                            Backend Base Config                              */
 /* -------------------------------------------------------------------------- */
 const BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://127.0.0.1:8000/api";
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://127.0.0.1:8000";
 
 
 /**
  * Helper wrapper for fetch that automatically includes
- * Authorization header if token exists.
+ * Authorization header from NextAuth session.
  */
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  // Get token from NextAuth session
+  const session = await getSession();
+  const token = (session as any)?.backend?.accessToken ?? null;
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -30,10 +32,7 @@ export async function apiFetch(
 
   // Handle expired or invalid tokens
   if (res.status === 401) {
-    console.warn("⚠️ Unauthorized (401) — clearing local tokens.");
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    // optional: redirect to login page
+    console.warn("⚠️ Unauthorized (401) — token may be expired");
   }
 
   return res;
@@ -67,14 +66,14 @@ function mapMessage(m: any, chatId: string): Message {
 /*                                   Chats                                     */
 /* -------------------------------------------------------------------------- */
 export async function listChats(): Promise<Thread[]> {
-  const r = await apiFetch("/chats");
+  const r = await apiFetch("/api/chats");
   if (!r.ok) throw new Error(`listChats failed: ${r.status}`);
   const data = await r.json();
   return (data.items ?? []).map(mapChat);
 }
 
 export async function createChat(title = "New Chat"): Promise<Thread> {
-  const r = await apiFetch("/chats", {
+  const r = await apiFetch("/api/chats", {
     method: "POST",
     body: JSON.stringify({ title }),
   });
@@ -84,7 +83,7 @@ export async function createChat(title = "New Chat"): Promise<Thread> {
 }
 
 export async function renameChat(id: string, title: string): Promise<void> {
-  const r = await apiFetch(`/chats/${id}`, {
+  const r = await apiFetch(`/api/chats/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ title }),
   });
@@ -92,7 +91,7 @@ export async function renameChat(id: string, title: string): Promise<void> {
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  const r = await apiFetch(`/chats/${id}`, { method: "DELETE" });
+  const r = await apiFetch(`/api/chats/${id}`, { method: "DELETE" });
   if (!r.ok) throw new Error(`deleteChat failed: ${r.status}`);
 }
 
@@ -100,7 +99,7 @@ export async function deleteChat(id: string): Promise<void> {
 /*                                  Messages                                   */
 /* -------------------------------------------------------------------------- */
 export async function listMessages(chatId: string): Promise<Message[]> {
-  const r = await apiFetch(`/chats/${chatId}/messages`);
+  const r = await apiFetch(`/api/chats/${chatId}/messages`);
   if (!r.ok) throw new Error(`listMessages failed: ${r.status}`);
   const data = await r.json();
   return (data.items ?? []).map((m: any) => mapMessage(m, chatId));
@@ -110,7 +109,7 @@ export async function addMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/chats/${chatId}/messages`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({ role: "user", content }),
   });
@@ -128,7 +127,7 @@ export async function addAssistantMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/chats/${chatId}/messages`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({ role: "assistant", content }),
   });

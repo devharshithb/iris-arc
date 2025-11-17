@@ -115,10 +115,19 @@ def signup(payload: AuthSignupIn, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password required for signup",
         )
+    
+    # Use provided name or derive from email
+    user_name = payload.name.strip() if payload.name else payload.email.split("@")[0]
+    
+    if not user_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Name is required",
+        )
 
     user = User(
         email=payload.email,
-        name=payload.name or payload.email.split("@")[0],
+        name=user_name,
         password_hash=hash_password(payload.password),
     )
     db.add(user)
