@@ -9,6 +9,8 @@ import { useEffect, useRef } from "react";
  * ----------------
  * Automatically syncs NextAuth tokens → localStorage → Zustand store.
  * Ensures backend bootstrap runs only once when authenticated.
+ * 
+ * Fixes race condition where tokens weren't available before API calls.
  */
 export default function AppBootstrapper() {
    const { data: session, status } = useSession();
@@ -54,3 +56,4 @@ export default function AppBootstrapper() {
 
    return null;
 }
+// Test
