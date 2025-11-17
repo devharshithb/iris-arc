@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import ProjectDialog from "@/components/shell/ProjectDialog";
 
 export default function ThreadMenu() {
   const { threads, currentThreadId, projects, assignThreadToProject, deleteChat: deleteChatFromStore, createProject } = useAppStore();
@@ -24,13 +25,9 @@ export default function ThreadMenu() {
   );
   const currentProject = projects.find((p) => p.id === thread?.projectId);
 
-  // Debug logging
-  console.log('[ThreadMenu] Projects:', projects.length, projects);
-  console.log('[ThreadMenu] Current thread:', currentThreadId);
-  console.log('[ThreadMenu] Current project:', currentProject);
-
   const [open, setOpen] = useState(false);
   const [submenuOpen, setSubmenuOpen] = useState(false);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
@@ -53,18 +50,15 @@ export default function ThreadMenu() {
   }, [open]);
 
   const onMoveToProject = async (projectId?: string) => {
-    console.log('[ThreadMenu] onMoveToProject called, projectId:', projectId, 'currentThreadId:', currentThreadId);
     if (!currentThreadId) {
-      console.warn('[ThreadMenu] No currentThreadId, aborting');
+      toast.error("No chat selected");
       return;
     }
     setOpen(false);
     setSubmenuOpen(false);
     const name = projectId ? projects.find((p) => p.id === projectId)?.name || "Project" : "No project";
-    console.log('[ThreadMenu] Moving to project:', name);
     try {
       await assignThreadToProject(currentThreadId, projectId);
-      console.log('[ThreadMenu] Move successful');
       toast.success(`Moved to: ${name}`);
     } catch (e) {
       console.error("[ThreadMenu] Failed to move chat:", e);
@@ -72,16 +66,19 @@ export default function ThreadMenu() {
     }
   };
 
-  const onCreateNewProject = () => {
-    const name = prompt("Enter project name:");
-    if (name && name.trim()) {
-      const projectId = createProject(name.trim());
-      if (currentThreadId) {
-        assignThreadToProject(currentThreadId, projectId);
-        toast.success(`Created "${name}" and moved chat`);
-      } else {
-        toast.success(`Created project "${name}"`);
-      }
+  const onCreateNewProject = (projectName: string) => {
+    const projectId = createProject(projectName);
+    if (currentThreadId) {
+      assignThreadToProject(currentThreadId, projectId)
+        .then(() => {
+          toast.success(`Created "${projectName}" and moved chat`);
+        })
+        .catch((e) => {
+          console.error("[ThreadMenu] Failed to assign to new project:", e);
+          toast.error("Created project but failed to move chat");
+        });
+    } else {
+      toast.success(`Created project "${projectName}"`);
     }
     setOpen(false);
     setSubmenuOpen(false);
@@ -124,7 +121,7 @@ export default function ThreadMenu() {
             <button
               ref={btnRef}
               onClick={() => setOpen((v) => !v)}
-              className="rounded-md px-2.5 py-1.5 text-sm hover:bg-white/5" // borderless
+              className="rounded-md px-2.5 py-1.5 text-sm hover:bg-white/5"
               aria-haspopup="menu"
               aria-expanded={open}
               aria-controls="thread-menu"
@@ -207,7 +204,9 @@ export default function ThreadMenu() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onCreateNewProject();
+                        setProjectDialogOpen(true);
+                        setOpen(false);
+                        setSubmenuOpen(false);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 text-left"
                       role="menuitem"
@@ -228,7 +227,6 @@ export default function ThreadMenu() {
                           key={p.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log(`Moving chat to project ${p.id}`);
                             onMoveToProject(p.id);
                           }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 text-left"
@@ -245,6 +243,12 @@ export default function ThreadMenu() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <ProjectDialog
+          open={projectDialogOpen}
+          onClose={() => setProjectDialogOpen(false)}
+          onCreate={onCreateNewProject}
+        />
       </div>
     </TooltipProvider>
   );

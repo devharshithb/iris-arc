@@ -109,6 +109,7 @@ export default function Sidebar() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectDlgOpen, setProjectDlgOpen] = useState(false);
+  const [chatToMoveToNewProject, setChatToMoveToNewProject] = useState<string | null>(null);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [subMenuForMove, setSubMenuForMove] = useState<string | null>(null);
@@ -270,8 +271,26 @@ export default function Sidebar() {
         <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} />
         <ProjectDialog
           open={projectDlgOpen}
-          onClose={() => setProjectDlgOpen(false)}
-          onCreate={(n) => createProject(n)}
+          onClose={() => {
+            setProjectDlgOpen(false);
+            setChatToMoveToNewProject(null);
+          }}
+          onCreate={(projectName) => {
+            const projectId = createProject(projectName);
+            if (chatToMoveToNewProject) {
+              assignThreadToProject(chatToMoveToNewProject, projectId)
+                .then(() => {
+                  toast.success(`Created "${projectName}" and moved chat`);
+                })
+                .catch((e) => {
+                  console.error("[Sidebar] Failed to assign to new project:", e);
+                  toast.error("Created project but failed to move chat");
+                });
+            } else {
+              toast.success(`Created project "${projectName}"`);
+            }
+            setChatToMoveToNewProject(null);
+          }}
         />
 
         {/* Header */}
@@ -972,6 +991,7 @@ function ChatRow({
                         >
                           <button
                             onClick={() => {
+                              setChatToMoveToNewProject(t.id);
                               setProjectDlgOpen(true);
                               setSubMenuForMove(null);
                             }}
