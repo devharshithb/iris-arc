@@ -31,10 +31,7 @@ coverage/
 
 # Virtual Environment
 .venv/
-<<<<<<< HEAD
 venv/
-__pycache__/
-=======
 __pycache__/
 
 # Database files
@@ -42,4 +39,3 @@ __pycache__/
 *.db-journal
 *.sqlite
 *.sqlite3
->>>>>>> origin/copilot/check-backend-correctness

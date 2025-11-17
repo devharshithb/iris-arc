@@ -49,7 +49,7 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
    const doSignupThenLogin = async () => {
       setLoading(true);
       try {
-         const r = await fetch(`${BACKEND}/auth/signup`, {
+         const r = await fetch(`${BACKEND}/api/auth/signup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, email, password }),

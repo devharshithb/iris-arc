@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.models import Chat, Message, User
 from app.schemas import (
     ChatCreateIn,
+    ChatUpdateIn,
     ChatOut,
     MessageCreateIn,
     MessageOut,
@@ -93,6 +94,30 @@ def add_message(
     db.commit()
     db.refresh(msg)
     return msg
+
+# --------------------------------------------------------------------------
+# 📝 Update (rename) chat
+# --------------------------------------------------------------------------
+@router.patch("/{chat_id}", response_model=ChatOut)
+def update_chat(
+    chat_id: int,
+    payload: ChatUpdateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.id == chat_id, Chat.user_id == user.id)
+        .first()
+    )
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+
+    chat.title = payload.title
+    chat.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(chat)
+    return chat
 
 # --------------------------------------------------------------------------
 # ❌ Delete chat

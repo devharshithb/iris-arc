@@ -52,7 +52,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   // 🔹 Retry on 401/403 if refresh token available
   if ((res1.status === 401 || res1.status === 403) && refresh) {
     try {
-      const r = await fetch(`${BASE}/auth/refresh`, {
+      const r = await fetch(`${BASE}/api/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: refresh }),

@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
         try {
-          const res = await fetch(`${BACKEND}/auth/login`, {
+          const res = await fetch(`${BACKEND}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(credentials),
@@ -97,7 +97,7 @@ export const authOptions: NextAuthOptions = {
         t.picture = p.picture ?? t.picture;
 
         try {
-          const res = await fetch(`${BACKEND}/auth/google-sync`, {
+          const res = await fetch(`${BACKEND}/api/auth/google-sync`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -125,7 +125,7 @@ export const authOptions: NextAuthOptions = {
       // --- Refresh expired access token automatically ---
       if (t.accessExp && now > t.accessExp - 60 && t.backend?.refreshToken) {
         try {
-          const r = await fetch(`${BACKEND}/auth/refresh`, {
+          const r = await fetch(`${BACKEND}/api/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
