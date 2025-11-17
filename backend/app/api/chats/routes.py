@@ -41,6 +41,7 @@ def create_chat(
     chat = Chat(
         title=payload.title or "New Chat",
         user_id=user.id,
+        project_id=payload.project_id,
     )
     db.add(chat)
     db.commit()
@@ -113,7 +114,11 @@ def update_chat(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    chat.title = payload.title
+    if payload.title is not None:
+        chat.title = payload.title
+    if payload.project_id is not None:
+        chat.project_id = payload.project_id
+    
     chat.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(chat)

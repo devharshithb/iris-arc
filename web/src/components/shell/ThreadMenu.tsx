@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 
 export default function ThreadMenu() {
-  const { threads, currentThreadId, projects } = useAppStore();
+  const { threads, currentThreadId, projects, assignThreadToProject, deleteChat: deleteChatFromStore } = useAppStore();
   const thread = useMemo(
     () => threads.find((t) => t.id === currentThreadId),
     [threads, currentThreadId]
@@ -46,20 +46,45 @@ export default function ThreadMenu() {
     };
   }, [open]);
 
-  const onMoveToProject = (projectId?: string) => {
+  const onMoveToProject = async (projectId?: string) => {
+    if (!currentThreadId) return;
     setOpen(false);
     setSubmenuOpen(false);
     const name = projectId ? projects.find((p) => p.id === projectId)?.name || "Project" : "No project";
-    toast.success(`Moved to: ${name}`);
+    try {
+      await assignThreadToProject(currentThreadId, projectId);
+      toast.success(`Moved to: ${name}`);
+    } catch (e) {
+      toast.error("Failed to move chat");
+    }
   };
-  const onRemoveFromProject = () => {
+  
+  const onRemoveFromProject = async () => {
+    if (!currentThreadId) return;
     setOpen(false);
     setSubmenuOpen(false);
-    toast.success(`Removed from ${currentProject?.name}`);
+    try {
+      await assignThreadToProject(currentThreadId, undefined);
+      toast.success(`Removed from ${currentProject?.name}`);
+    } catch (e) {
+      toast.error("Failed to remove from project");
+    }
   };
-  const onArchive = () => (setOpen(false), setSubmenuOpen(false), toast("Archived (placeholder)"));
-  const onReport = () => (setOpen(false), setSubmenuOpen(false), toast("Reported (placeholder)"));
-  const onDelete = () => (setOpen(false), setSubmenuOpen(false), toast.error("Deleted (placeholder)"));
+  
+  const onArchive = () => (setOpen(false), setSubmenuOpen(false), toast("Archive feature coming soon"));
+  const onReport = () => (setOpen(false), setSubmenuOpen(false), toast("Report feature coming soon"));
+  
+  const onDelete = async () => {
+    if (!currentThreadId) return;
+    setOpen(false);
+    setSubmenuOpen(false);
+    try {
+      await deleteChatFromStore(currentThreadId);
+      toast.success("Chat deleted");
+    } catch (e) {
+      toast.error("Failed to delete chat");
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={80}>

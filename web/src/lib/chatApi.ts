@@ -45,6 +45,7 @@ function mapChat(c: any): Thread {
   return {
     id: String(c.id),
     title: c.title,
+    projectId: c.project_id || undefined,
     createdAt: new Date(c.created_at).getTime(),
     updatedAt: new Date(c.updated_at).getTime(),
     agentMode: "single",
@@ -72,10 +73,10 @@ export async function listChats(): Promise<Thread[]> {
   return (data.items ?? []).map(mapChat);
 }
 
-export async function createChat(title = "New Chat"): Promise<Thread> {
+export async function createChat(title = "New Chat", projectId?: string): Promise<Thread> {
   const r = await apiFetch("/api/chats/", {
     method: "POST",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, project_id: projectId }),
   });
   if (!r.ok) throw new Error(`createChat failed: ${r.status}`);
   const c = await r.json();
@@ -88,6 +89,14 @@ export async function renameChat(id: string, title: string): Promise<void> {
     body: JSON.stringify({ title }),
   });
   if (!r.ok) throw new Error(`renameChat failed: ${r.status}`);
+}
+
+export async function updateChatProject(id: string, projectId: string | null): Promise<void> {
+  const r = await apiFetch(`/api/chats/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ project_id: projectId }),
+  });
+  if (!r.ok) throw new Error(`updateChatProject failed: ${r.status}`);
 }
 
 export async function deleteChat(id: string): Promise<void> {
@@ -139,4 +148,50 @@ export async function addAssistantMessage(
 
   const data = await r.json();
   return mapMessage(data, chatId);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  Projects                                   */
+/* -------------------------------------------------------------------------- */
+export async function listProjects(): Promise<import("@/lib/types").Project[]> {
+  const r = await apiFetch("/api/projects/");
+  if (!r.ok) throw new Error(`listProjects failed: ${r.status}`);
+  const data = await r.json();
+  return (data.items ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    createdAt: new Date(p.created_at).getTime(),
+    updatedAt: new Date(p.updated_at).getTime(),
+  }));
+}
+
+export async function createProject(id: string, name: string): Promise<import("@/lib/types").Project> {
+  const r = await apiFetch("/api/projects/", {
+    method: "POST",
+    body: JSON.stringify({ id, name }),
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error(`createProject failed: ${r.status} - ${txt}`);
+  }
+  const p = await r.json();
+  return {
+    id: p.id,
+    name: p.name,
+    createdAt: new Date(p.created_at).getTime(),
+    updatedAt: new Date(p.updated_at).getTime(),
+  };
+}
+
+export async function renameProject(id: string, name: string): Promise<void> {
+  const r = await apiFetch(`/api/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+  if (!r.ok) throw new Error(`renameProject failed: ${r.status}`);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const r = await apiFetch(`/api/projects/${id}`, { method: "DELETE" });
+  if (!r.ok) throw new Error(`deleteProject failed: ${r.status}`);
 }

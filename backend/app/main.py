@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.api.auth.routes import router as auth_router
 from app.api.chats.routes import router as chat_router
+from app.api.projects.routes import router as project_router
 from app.api.stream.routes import router as stream_router
 from app.core.config import settings
 from app.db.session import Base, engine
@@ -34,6 +35,7 @@ app.add_middleware(
 # ✅ Correct prefixes already defined in routers
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(project_router)
 app.include_router(stream_router, prefix="/api")
 
 @app.get("/")

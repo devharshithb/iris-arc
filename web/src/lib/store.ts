@@ -10,8 +10,16 @@ import {
   createChat as apiCreateChat,
   listChats as apiListChats,
   listMessages as apiListMessages,
+  updateChatProject as apiUpdateChatProject,
+  renameChat as apiRenameChat,
+  deleteChat as apiDeleteChat,
+  listProjects as apiListProjects,
+  createProject as apiCreateProject,
+  renameProject as apiRenameProject,
+  deleteProject as apiDeleteProject,
 } from "./chatApi";
 import type { Attachment, Message, Project, Thread } from "./types";
+import { getSession } from "next-auth/react";
 
 /* -------------------------------------------------------------------------- */
 /*                              Helper Utilities                              */
@@ -75,11 +83,14 @@ export type State = {
   bootstrapAfterLogin: () => Promise<void>;
   loadChatsFromServer: () => Promise<void>;
   loadMessagesFromServer: (threadId: string) => Promise<void>;
+  loadProjectsFromServer: () => Promise<void>;
+  syncProjectToServer: (projectId: string, name: string) => Promise<void>;
 
   /* ---------------- Chat Actions ---------------- */
   setCurrentThread: (id: string) => void;
   newThread: (projectId?: string) => Promise<string>;
   sendUserMessage: (text: string) => void;
+  deleteChat: (id: string) => Promise<void>;
 
   /* ---------------- Streaming ---------------- */
   startStream: (seedText?: string) => Promise<{ stop: () => void }>;
@@ -212,23 +223,36 @@ export const useAppStore = createWithEqualityFn<State>()(
 
       /* ---------------- Auth & Logout ---------------- */
       logout: () => {
-        console.log("🔒 Logging out → clearing tokens & store");
-        // No need to clear localStorage tokens since we use NextAuth session
-        useAppStore.persist.clearStorage(); // clear persisted Zustand
+        console.log("🔒 Logging out → clearing all state");
+        // Clear the persisted store completely
+        useAppStore.persist.clearStorage();
+        // Reset to initial state
         set({
-          threads: [initialThread],
-          messages: { t1: [] },
-          currentThreadId: "t1",
-          projects: initialProjects,
+          threads: [],
+          messages: {},
+          attachments: {},
+          draftFiles: [],
+          projects: [],
+          currentProjectFilter: undefined,
+          currentThreadId: undefined,
+          leftSidebarOpen: true,
+          rightRailOpen: false,
+          stream: { isStreaming: false },
         });
       },
 
       /* ---------------- Bootstrapping ---------------- */
       bootstrapAfterLogin: async () => {
         try {
+          // Load projects first
+          await get().loadProjectsFromServer();
+          
+          // Load chats
           await get().loadChatsFromServer();
+          
           const { threads } = get();
           if (!threads.length) {
+            // Create first chat
             const created = await apiCreateChat("Chat 1");
             set({
               threads: [created],
@@ -236,6 +260,7 @@ export const useAppStore = createWithEqualityFn<State>()(
               currentThreadId: created.id,
             });
           } else {
+            // Load messages for first chat
             const active = threads[0];
             set({
               currentThreadId: active.id,
@@ -247,12 +272,6 @@ export const useAppStore = createWithEqualityFn<State>()(
               console.warn("No messages found for this chat:", e);
             }
           }
-          set((s) => ({
-            threads: s.threads.filter((t) => !t.id.startsWith("t")),
-            messages: Object.fromEntries(
-              Object.entries(s.messages).filter(([id]) => !id.startsWith("t"))
-            ),
-          }));
         } catch (e) {
           console.error("bootstrapAfterLogin failed:", e);
         }
@@ -260,7 +279,10 @@ export const useAppStore = createWithEqualityFn<State>()(
 
       loadChatsFromServer: async () => {
         const chats = await apiListChats();
-        if (!chats.length) return;
+        if (!chats.length) {
+          set({ threads: [], messages: {}, currentThreadId: undefined });
+          return;
+        }
         chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
         set({ threads: chats, messages: {}, currentThreadId: chats[0]?.id });
       },
@@ -270,6 +292,24 @@ export const useAppStore = createWithEqualityFn<State>()(
         set((s) => ({ messages: { ...s.messages, [tid]: msgs } }));
       },
 
+      loadProjectsFromServer: async () => {
+        try {
+          const projects = await apiListProjects();
+          set({ projects });
+        } catch (e) {
+          console.error("Failed to load projects:", e);
+          set({ projects: [] });
+        }
+      },
+
+      syncProjectToServer: async (projectId: string, name: string) => {
+        try {
+          await apiCreateProject(projectId, name);
+        } catch (e) {
+          console.error("Failed to sync project to server:", e);
+        }
+      },
+
       setCurrentThread: (id) => set({ currentThreadId: id }),
 
       /* ---------------- Chat Actions ---------------- */
@@ -277,27 +317,39 @@ export const useAppStore = createWithEqualityFn<State>()(
         const title = `Chat ${(get().threads?.length || 0) + 1}`;
         let created: Thread;
         try {
-          created = await apiCreateChat(title);
-        } catch {
-          created = {
-            id: rid("t"),
-            title,
-            createdAt: now(),
-            updatedAt: now(),
-            agentMode: "single",
-            participants: ["assistant", "user"],
-          };
+          created = await apiCreateChat(title, projectId);
+        } catch (e) {
+          console.error("Failed to create chat on server:", e);
+          throw e;
         }
 
         set((s) => ({
-          threads: [created, ...s.threads.filter((t) => t.id !== "t1")],
+          threads: [created, ...s.threads],
           messages: { ...s.messages, [created.id]: [] },
           currentThreadId: created.id,
           draftFiles: [],
           stream: { isStreaming: false },
         }));
-        if (projectId) get().assignThreadToProject(created.id, projectId);
         return created.id;
+      },
+
+      deleteChat: async (id) => {
+        try {
+          await apiDeleteChat(id);
+          set((s) => {
+            const newThreads = s.threads.filter((t) => t.id !== id);
+            const newMessages = { ...s.messages };
+            delete newMessages[id];
+            return {
+              threads: newThreads,
+              messages: newMessages,
+              currentThreadId: s.currentThreadId === id ? newThreads[0]?.id : s.currentThreadId,
+            };
+          });
+        } catch (e) {
+          console.error("Failed to delete chat:", e);
+          throw e;
+        }
       },
 
       sendUserMessage: (text) => {
@@ -493,29 +545,52 @@ export const useAppStore = createWithEqualityFn<State>()(
         const id = `p-${Math.random().toString(36).slice(2, 8)}`;
         const p: Project = { id, name, createdAt: now(), updatedAt: now() };
         set((s) => ({ projects: [p, ...s.projects] }));
+        // Sync to server
+        get().syncProjectToServer(id, name);
         return id;
       },
-      renameProject: (id, name) =>
+      renameProject: async (id, name) => {
         set((s) => ({
           projects: s.projects.map((p) =>
             p.id === id ? { ...p, name, updatedAt: now() } : p
           ),
-        })),
-      deleteProject: (id) =>
+        }));
+        // Sync to server
+        try {
+          await apiRenameProject(id, name);
+        } catch (e) {
+          console.error("Failed to rename project on server:", e);
+        }
+      },
+      deleteProject: async (id) => {
         set((s) => ({
           projects: s.projects.filter((p) => p.id !== id),
           threads: s.threads.map((t) =>
-                        t.projectId === id ? { ...t, projectId: undefined } : t
+            t.projectId === id ? { ...t, projectId: undefined } : t
           ),
           currentProjectFilter:
             s.currentProjectFilter === id ? undefined : s.currentProjectFilter,
-        })),
-      assignThreadToProject: (tid, pid) =>
+        }));
+        // Sync to server
+        try {
+          await apiDeleteProject(id);
+        } catch (e) {
+          console.error("Failed to delete project on server:", e);
+        }
+      },
+      assignThreadToProject: async (tid, pid) => {
         set((s) => ({
           threads: s.threads.map((t) =>
             t.id === tid ? { ...t, projectId: pid } : t
           ),
-        })),
+        }));
+        // Sync to server
+        try {
+          await apiUpdateChatProject(tid, pid || null);
+        } catch (e) {
+          console.error("Failed to update chat project on server:", e);
+        }
+      },
       setProjectFilter: (pid) => set({ currentProjectFilter: pid }),
 
       /* ---------------- Search ---------------- */
@@ -523,14 +598,38 @@ export const useAppStore = createWithEqualityFn<State>()(
     }),
     {
       name: "irisarc-store",
-      storage: createJSONStorage(() => localStorage),
-      version: 1,
+      storage: createJSONStorage(() => ({
+        getItem: async (name) => {
+          const session = await getSession();
+          const userId = (session?.user as any)?.id;
+          if (!userId) return null;
+          const key = `${name}-user-${userId}`;
+          const item = localStorage.getItem(key);
+          return item;
+        },
+        setItem: async (name, value) => {
+          const session = await getSession();
+          const userId = (session?.user as any)?.id;
+          if (!userId) return;
+          const key = `${name}-user-${userId}`;
+          localStorage.setItem(key, value);
+        },
+        removeItem: async (name) => {
+          const session = await getSession();
+          const userId = (session?.user as any)?.id;
+          if (!userId) return;
+          const key = `${name}-user-${userId}`;
+          localStorage.removeItem(key);
+        },
+      })),
+      version: 2,
       partialize: (state) => ({
-        threads: state.threads,
-        messages: state.messages,
-        projects: state.projects,
+        // Only persist UI preferences, not data (data comes from server)
         prefs: state.prefs,
-        currentThreadId: state.currentThreadId,
+        leftSidebarOpen: state.leftSidebarOpen,
+        rightRailOpen: state.rightRailOpen,
+        composerHeight: state.composerHeight,
+        currentProjectFilter: state.currentProjectFilter,
       }),
     }
   ),

@@ -46,10 +46,12 @@ class RefreshIn(BaseModel):
 # --------------------------------------------------------------------------
 class ChatCreateIn(BaseModel):
     title: Optional[str] = None
+    project_id: Optional[str] = None
 
 
 class ChatUpdateIn(BaseModel):
-    title: str
+    title: Optional[str] = None
+    project_id: Optional[str] = None
 
 
 class ChatOut(BaseModel):
@@ -57,6 +59,7 @@ class ChatOut(BaseModel):
 
     id: int
     title: str
+    project_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -85,4 +88,30 @@ class MessageOut(BaseModel):
 
 class PaginatedMessages(BaseModel):
     items: List[MessageOut]
+    total: int
+
+
+# --------------------------------------------------------------------------
+# Project Schemas
+# --------------------------------------------------------------------------
+class ProjectCreateIn(BaseModel):
+    id: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=255)
+
+
+class ProjectUpdateIn(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+
+
+class ProjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class PaginatedProjects(BaseModel):
+    items: List[ProjectOut]
     total: int
