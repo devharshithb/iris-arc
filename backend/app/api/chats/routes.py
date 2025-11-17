@@ -114,10 +114,11 @@ def update_chat(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    if payload.title is not None:
-        chat.title = payload.title
-    if payload.project_id is not None:
-        chat.project_id = payload.project_id
+    # Use model_dump to get only provided fields
+    update_data = payload.model_dump(exclude_unset=True)
+    
+    for field, value in update_data.items():
+        setattr(chat, field, value)
     
     chat.updated_at = datetime.now(timezone.utc)
     db.commit()

@@ -143,9 +143,8 @@ const initialThread: Thread = {
   participants: ["assistant", "user"],
 };
 
-const initialProjects: Project[] = [
-  { id: "p-default", name: "General", createdAt: now(), updatedAt: now() },
-];
+// Empty initial projects - will be loaded from server
+const initialProjects: Project[] = [];
 
 /* -------------------------------------------------------------------------- */
 /*                           Stable Search Function                            */
@@ -224,8 +223,22 @@ export const useAppStore = createWithEqualityFn<State>()(
       /* ---------------- Auth & Logout ---------------- */
       logout: () => {
         console.log("🔒 Logging out → clearing all state");
-        // Clear the persisted store completely
-        useAppStore.persist.clearStorage();
+        
+        // Get current user ID before clearing
+        const userId = localStorage.getItem("current_user_id");
+        
+        // Clear the persisted store for this user
+        if (userId) {
+          const key = `irisarc-store-user-${userId}`;
+          localStorage.removeItem(key);
+          console.log(`[LOGOUT] Cleared store for user ${userId}`);
+        }
+        
+        // Clear tokens and user ID
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("current_user_id");
+        
         // Reset to initial state
         set({
           threads: [],
@@ -244,61 +257,113 @@ export const useAppStore = createWithEqualityFn<State>()(
       /* ---------------- Bootstrapping ---------------- */
       bootstrapAfterLogin: async () => {
         try {
+          console.log("[BOOTSTRAP] Starting...");
+          
+          const { messages: cachedMessages } = get();
+          console.log(`[BOOTSTRAP] Found ${Object.keys(cachedMessages).length} cached chat messages`);
+          
           // Load projects first
-          await get().loadProjectsFromServer();
+          try {
+            await get().loadProjectsFromServer();
+            console.log("[BOOTSTRAP] Projects loaded");
+          } catch (e: any) {
+            console.error("[BOOTSTRAP] Failed to load projects:", e.message);
+            // Continue even if projects fail
+          }
           
           // Load chats
-          await get().loadChatsFromServer();
+          try {
+            await get().loadChatsFromServer();
+            console.log("[BOOTSTRAP] Chats loaded");
+          } catch (e: any) {
+            console.error("[BOOTSTRAP] Failed to load chats:", e.message);
+            // Continue even if chats fail
+          }
           
-          const { threads } = get();
+          const { threads, messages } = get();
+          console.log(`[BOOTSTRAP] After loading: ${threads.length} threads, ${Object.keys(messages).length} message arrays`);
+          
           if (!threads.length) {
             // Create first chat
-            const created = await apiCreateChat("Chat 1");
-            set({
-              threads: [created],
-              messages: { [created.id]: [] },
-              currentThreadId: created.id,
-            });
+            try {
+              const created = await apiCreateChat("Chat 1");
+              set({
+                threads: [created],
+                messages: { [created.id]: [] },
+                currentThreadId: created.id,
+              });
+              console.log("[BOOTSTRAP] Created initial chat");
+            } catch (e: any) {
+              console.error("[BOOTSTRAP] Failed to create initial chat:", e.message);
+            }
           } else {
-            // Load messages for first chat
+            // Load messages for first chat only if not already cached
             const active = threads[0];
             set({
               currentThreadId: active.id,
-              messages: { [active.id]: [] },
             });
-            try {
-              await get().loadMessagesFromServer(active.id);
-            } catch (e) {
-              console.warn("No messages found for this chat:", e);
+            
+            if (!messages[active.id] || messages[active.id].length === 0) {
+              console.log(`[BOOTSTRAP] Loading messages for active chat ${active.id}`);
+              try {
+                await get().loadMessagesFromServer(active.id);
+                console.log("[BOOTSTRAP] Messages loaded for active chat");
+              } catch (e) {
+                console.warn("[BOOTSTRAP] No messages found for this chat:", e);
+              }
+            } else {
+              console.log(`[BOOTSTRAP] Using cached messages for chat ${active.id} (${messages[active.id].length} messages)`);
             }
           }
+          
+          console.log("[BOOTSTRAP] Complete");
         } catch (e) {
-          console.error("bootstrapAfterLogin failed:", e);
+          console.error("[BOOTSTRAP] Fatal error:", e);
         }
       },
 
       loadChatsFromServer: async () => {
-        const chats = await apiListChats();
-        if (!chats.length) {
-          set({ threads: [], messages: {}, currentThreadId: undefined });
-          return;
+        try {
+          const chats = await apiListChats();
+          if (!chats.length) {
+            console.log("[LOAD_CHATS] No chats found on server");
+            return; // Keep existing local chats if any
+          }
+          chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+          
+          // Preserve existing messages when updating threads
+          set((s) => ({ 
+            threads: chats,
+            // Keep existing messages
+            messages: s.messages,
+          }));
+          
+          console.log(`[LOAD_CHATS] Loaded ${chats.length} chats from server`);
+        } catch (e: any) {
+          console.error("[LOAD_CHATS] Error:", e.message);
+          throw e;
         }
-        chats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        set({ threads: chats, messages: {}, currentThreadId: chats[0]?.id });
       },
 
       loadMessagesFromServer: async (tid: string) => {
+        console.log(`[LOAD_MESSAGES] Loading messages for chat ${tid}`);
         const msgs = await apiListMessages(tid);
-        set((s) => ({ messages: { ...s.messages, [tid]: msgs } }));
+        console.log(`[LOAD_MESSAGES] Got ${msgs.length} messages from server`);
+        set((s) => {
+          const updated = { ...s.messages, [tid]: msgs };
+          console.log(`[LOAD_MESSAGES] Message arrays after update: ${Object.keys(updated).length} chats`);
+          return { messages: updated };
+        });
       },
 
       loadProjectsFromServer: async () => {
         try {
           const projects = await apiListProjects();
           set({ projects });
-        } catch (e) {
-          console.error("Failed to load projects:", e);
-          set({ projects: [] });
+          console.log(`[LOAD_PROJECTS] Loaded ${projects.length} projects from server`);
+        } catch (e: any) {
+          console.error("[LOAD_PROJECTS] Error:", e.message);
+          throw e;
         }
       },
 
@@ -310,7 +375,21 @@ export const useAppStore = createWithEqualityFn<State>()(
         }
       },
 
-      setCurrentThread: (id) => set({ currentThreadId: id }),
+      setCurrentThread: (id) => {
+        console.log(`[STORE] Switching to thread ${id}`);
+        set({ currentThreadId: id });
+        
+        // Auto-load messages if not already loaded
+        const { messages } = get();
+        if (!messages[id] || messages[id].length === 0) {
+          console.log(`[STORE] Auto-loading messages for thread ${id}`);
+          get().loadMessagesFromServer(id).catch((e) => {
+            console.error(`[STORE] Failed to load messages for thread ${id}:`, e);
+          });
+        } else {
+          console.log(`[STORE] Using cached messages for thread ${id} (${messages[id].length} messages)`);
+        }
+      },
 
       /* ---------------- Chat Actions ---------------- */
       newThread: async (projectId) => {
@@ -603,37 +682,76 @@ export const useAppStore = createWithEqualityFn<State>()(
     {
       name: "irisarc-store",
       storage: createJSONStorage(() => ({
-        getItem: async (name) => {
-          const session = await getSession();
-          const userId = (session?.user as any)?.id;
-          if (!userId) return null;
+        getItem: (name) => {
+          // Synchronous storage - use clientside only
+          if (typeof window === "undefined") return null;
+          
+          // Try to get userId from localStorage (set during login)
+          const userId = localStorage.getItem("current_user_id");
+          if (!userId) {
+            console.warn("[STORE] No user ID found in localStorage");
+            return null;
+          }
+          
           const key = `${name}-user-${userId}`;
           const item = localStorage.getItem(key);
+          if (item) {
+            console.log(`[STORE] Loaded state for user ${userId}`);
+          }
           return item;
         },
-        setItem: async (name, value) => {
-          const session = await getSession();
-          const userId = (session?.user as any)?.id;
-          if (!userId) return;
+        setItem: (name, value) => {
+          if (typeof window === "undefined") return;
+          
+          const userId = localStorage.getItem("current_user_id");
+          if (!userId) {
+            console.warn("[STORE] No user ID found, cannot save state");
+            return;
+          }
+          
           const key = `${name}-user-${userId}`;
           localStorage.setItem(key, value);
+          console.log(`[STORE] Saved state for user ${userId}`);
         },
-        removeItem: async (name) => {
-          const session = await getSession();
-          const userId = (session?.user as any)?.id;
+        removeItem: (name) => {
+          if (typeof window === "undefined") return;
+          
+          const userId = localStorage.getItem("current_user_id");
           if (!userId) return;
+          
           const key = `${name}-user-${userId}`;
           localStorage.removeItem(key);
+          console.log(`[STORE] Removed state for user ${userId}`);
         },
       })),
-      version: 2,
+      version: 3,
+      migrate: (persistedState: any, version: number) => {
+        console.log(`[STORE] Migrating from version ${version} to 3`);
+        
+        // If coming from version 2 or earlier, preserve what we can
+        if (version < 3) {
+          return {
+            ...persistedState,
+            threads: persistedState.threads || [],
+            messages: persistedState.messages || {},
+            projects: persistedState.projects || [],
+            currentThreadId: persistedState.currentThreadId,
+          };
+        }
+        
+        return persistedState as any;
+      },
       partialize: (state) => ({
-        // Only persist UI preferences, not data (data comes from server)
+        // Persist UI preferences AND data for offline/reload support
         prefs: state.prefs,
         leftSidebarOpen: state.leftSidebarOpen,
         rightRailOpen: state.rightRailOpen,
         composerHeight: state.composerHeight,
         currentProjectFilter: state.currentProjectFilter,
+        threads: state.threads,
+        messages: state.messages,
+        projects: state.projects,
+        currentThreadId: state.currentThreadId,
       }),
     }
   ),

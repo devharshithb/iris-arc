@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt
 
 from app.core.config import settings
@@ -12,17 +12,20 @@ from app.db.session import get_db
 from app.models.user import User
 
 # ---------------------------------------------------------------------
-# Password hashing
+# Password hashing (using bcrypt directly)
 # ---------------------------------------------------------------------
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str) -> str:
     """Hashes a plain password using bcrypt."""
-    return pwd_ctx.hash(password)
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(password: str, password_hash: str) -> bool:
     """Verifies a plain password against a bcrypt hash."""
-    return pwd_ctx.verify(password, password_hash)
+    password_bytes = password.encode('utf-8')
+    hash_bytes = password_hash.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hash_bytes)
 
 
 

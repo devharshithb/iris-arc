@@ -12,15 +12,26 @@ const BASE_URL =
 
 /**
  * Helper wrapper for fetch that automatically includes
- * Authorization header from NextAuth session.
+ * Authorization header from NextAuth session or localStorage.
  */
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  // Get token from NextAuth session
-  const session = await getSession();
-  const token = (session as any)?.backend?.accessToken ?? null;
+  // Try to get token from NextAuth session first
+  let token: string | null = null;
+  
+  try {
+    const session = await getSession();
+    token = (session as any)?.backend?.accessToken ?? null;
+  } catch (e) {
+    console.warn("Failed to get session, falling back to localStorage", e);
+  }
+
+  // Fallback to localStorage if session doesn't have token
+  if (!token && typeof window !== "undefined") {
+    token = localStorage.getItem("access_token");
+  }
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -32,7 +43,7 @@ export async function apiFetch(
 
   // Handle expired or invalid tokens
   if (res.status === 401) {
-    console.warn("⚠️ Unauthorized (401) — token may be expired");
+    console.warn(`⚠️ Unauthorized (401) for ${endpoint} — token may be expired`);
   }
 
   return res;
@@ -92,11 +103,19 @@ export async function renameChat(id: string, title: string): Promise<void> {
 }
 
 export async function updateChatProject(id: string, projectId: string | null): Promise<void> {
+  console.log(`[API] updateChatProject: chatId=${id}, projectId=${projectId}`);
   const r = await apiFetch(`/api/chats/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ project_id: projectId }),
   });
-  if (!r.ok) throw new Error(`updateChatProject failed: ${r.status}`);
+  
+  if (!r.ok) {
+    const errorText = await r.text().catch(() => "");
+    console.error(`[API] updateChatProject failed: ${r.status} - ${errorText}`);
+    throw new Error(`updateChatProject failed: ${r.status}`);
+  }
+  
+  console.log(`[API] updateChatProject success`);
 }
 
 export async function deleteChat(id: string): Promise<void> {
@@ -108,7 +127,7 @@ export async function deleteChat(id: string): Promise<void> {
 /*                                  Messages                                   */
 /* -------------------------------------------------------------------------- */
 export async function listMessages(chatId: string): Promise<Message[]> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages/`);
+  const r = await apiFetch(`/api/chats/${chatId}/messages`);
   if (!r.ok) throw new Error(`listMessages failed: ${r.status}`);
   const data = await r.json();
   return (data.items ?? []).map((m: any) => mapMessage(m, chatId));
@@ -118,7 +137,7 @@ export async function addMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages/`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({ role: "user", content }),
   });
@@ -136,7 +155,7 @@ export async function addAssistantMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages/`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({ role: "assistant", content }),
   });
