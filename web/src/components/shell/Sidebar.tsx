@@ -984,13 +984,15 @@ function ChatRow({
                             <button
                               key={p2.id}
                               onClick={async () => {
+                                console.log('[Sidebar] Moving chat', t.id, 'to project', p2.id, p2.name);
                                 try {
                                   await assignThreadToProject(t.id, p2.id);
+                                  console.log('[Sidebar] Move successful');
                                   setOpenMenuId(null);
                                   setSubMenuForMove(null);
                                   toast.success(`Moved to ${p2.name}`);
                                 } catch (e) {
-                                  console.error("Failed to move to project:", e);
+                                  console.error("[Sidebar] Failed to move to project:", e);
                                   toast.error("Failed to move chat");
                                 }
                               }}

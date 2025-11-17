@@ -24,6 +24,11 @@ export default function ThreadMenu() {
   );
   const currentProject = projects.find((p) => p.id === thread?.projectId);
 
+  // Debug logging
+  console.log('[ThreadMenu] Projects:', projects.length, projects);
+  console.log('[ThreadMenu] Current thread:', currentThreadId);
+  console.log('[ThreadMenu] Current project:', currentProject);
+
   const [open, setOpen] = useState(false);
   const [submenuOpen, setSubmenuOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -48,15 +53,21 @@ export default function ThreadMenu() {
   }, [open]);
 
   const onMoveToProject = async (projectId?: string) => {
-    if (!currentThreadId) return;
+    console.log('[ThreadMenu] onMoveToProject called, projectId:', projectId, 'currentThreadId:', currentThreadId);
+    if (!currentThreadId) {
+      console.warn('[ThreadMenu] No currentThreadId, aborting');
+      return;
+    }
     setOpen(false);
     setSubmenuOpen(false);
     const name = projectId ? projects.find((p) => p.id === projectId)?.name || "Project" : "No project";
+    console.log('[ThreadMenu] Moving to project:', name);
     try {
       await assignThreadToProject(currentThreadId, projectId);
+      console.log('[ThreadMenu] Move successful');
       toast.success(`Moved to: ${name}`);
     } catch (e) {
-      console.error("Failed to move chat:", e);
+      console.error("[ThreadMenu] Failed to move chat:", e);
       toast.error("Failed to move chat");
     }
   };
