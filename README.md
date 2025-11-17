@@ -82,7 +82,7 @@ iris-arc/
 - **Framework:** FastAPI (async Python web framework)
 - **Runtime:** Uvicorn ASGI server
 - **Database:** SQLite with SQLAlchemy ORM
-- **Authentication:** 
+- **Authentication:**
   - JWT (JSON Web Tokens) for stateless auth
   - bcrypt for password hashing
   - Access & refresh token pattern
@@ -115,6 +115,7 @@ iris-arc/
 ### Docker Installation
 
 #### Windows with WSL2
+
 1. Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop)
 2. During installation, ensure "Use WSL 2 instead of Hyper-V" is selected
 3. After installation, open Docker Desktop → Settings → Resources → WSL Integration
@@ -123,6 +124,7 @@ iris-arc/
 6. Restart terminal or run: `newgrp docker`
 
 #### Linux
+
 ```bash
 # Install Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -138,6 +140,7 @@ docker compose version
 ```
 
 #### macOS
+
 1. Download and install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
 2. Start Docker Desktop
 3. Verify: `docker --version && docker compose version`
@@ -161,7 +164,7 @@ The easiest and fastest way to run Iris Arc:
 
 ```bash
 # 1. Clone the repository
-git clone git@github.com:<your-username>/iris-arc.git
+git clone git@github.com:devharshithb/iris-arc.git
 cd iris-arc
 
 # 2. Create environment file
@@ -182,11 +185,13 @@ docker compose up -d --build
 ```
 
 **Access the application:**
+
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:8000
 - **API Docs:** http://localhost:8000/docs
 
 **Stop the services:**
+
 ```bash
 # Stop (preserve data)
 docker compose down
@@ -196,6 +201,7 @@ docker compose down -v
 ```
 
 **View logs:**
+
 ```bash
 # All services
 docker compose logs -f
@@ -206,6 +212,7 @@ docker compose logs -f frontend
 ```
 
 **Note:** If you get permission errors, run:
+
 ```bash
 sudo usermod -aG docker $USER
 newgrp docker
@@ -221,7 +228,7 @@ For development without Docker:
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone git@github.com:<your-username>/iris-arc.git
+git clone git@github.com:devharshithb/iris-arc.git
 cd iris-arc
 ```
 
@@ -253,6 +260,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 The backend will be available at:
+
 - **API:** http://localhost:8000
 - **Interactive Docs:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
@@ -275,6 +283,7 @@ pnpm dev
 ```
 
 The frontend will be available at:
+
 - **Web App:** http://localhost:3000
 
 ---
@@ -309,27 +318,28 @@ NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 
 ### Frontend (web/)
 
-| Command            | Description                          |
-| ------------------ | ------------------------------------ |
-| `pnpm dev`         | Start development server (port 3000) |
-| `pnpm build`       | Build production bundle              |
-| `pnpm start`       | Run production server                |
-| `pnpm lint`        | Run ESLint                           |
-| `pnpm type-check`  | TypeScript type checking             |
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `pnpm dev`        | Start development server (port 3000) |
+| `pnpm build`      | Build production bundle              |
+| `pnpm start`      | Run production server                |
+| `pnpm lint`       | Run ESLint                           |
+| `pnpm type-check` | TypeScript type checking             |
 
 ### Backend (backend/)
 
-| Command                                      | Description                      |
-| -------------------------------------------- | -------------------------------- |
-| `uvicorn app.main:app --reload --port 8000`  | Start development server         |
-| `uvicorn app.main:app --host 0.0.0.0 --port 8000` | Start production server   |
-| `python -m pytest`                           | Run tests (when configured)      |
+| Command                                           | Description                 |
+| ------------------------------------------------- | --------------------------- |
+| `uvicorn app.main:app --reload --port 8000`       | Start development server    |
+| `uvicorn app.main:app --host 0.0.0.0 --port 8000` | Start production server     |
+| `python -m pytest`                                | Run tests (when configured) |
 
 ---
 
 ## 🔑 Key Features
 
 ### 1. Authentication System
+
 - User registration with email validation
 - Secure login with JWT tokens
 - Password hashing using bcrypt
@@ -337,11 +347,13 @@ NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 - Protected routes on both frontend and backend
 
 ### 2. Project Management
+
 - Create and organize security investigation projects
 - Associate conversations with specific projects
 - Project-based access control and filtering
 
 ### 3. Conversational AI Interface
+
 - Real-time streaming responses from AI agents
 - Message history persistence
 - Support for multiple concurrent conversations
@@ -349,12 +361,14 @@ NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 - Markdown rendering with code syntax highlighting
 
 ### 4. File Management
+
 - Drag-and-drop file uploads
 - Document attachment to messages
 - File preview and download capabilities
 - Support for multiple file types
 
 ### 5. Modern UI/UX
+
 - Responsive design for desktop and mobile
 - Dark/light/system theme preferences
 - Smooth animations and transitions
@@ -421,6 +435,7 @@ git push origin main
 ### Docker Issues
 
 **Issue: Permission denied when running docker commands**
+
 ```bash
 # Add user to docker group
 sudo usermod -aG docker $USER
@@ -434,6 +449,7 @@ docker ps
 ```
 
 **Issue: Port already in use**
+
 ```bash
 # Check what's using the port
 sudo lsof -i :8000
@@ -447,12 +463,18 @@ ports:
 **Issue: Frontend build fails with TypeScript/ESLint errors**
 
 This is already fixed in `web/next.config.ts`:
+
 ```typescript
-eslint: { ignoreDuringBuilds: true }
-typescript: { ignoreBuildErrors: true }
+eslint: {
+  ignoreDuringBuilds: true;
+}
+typescript: {
+  ignoreBuildErrors: true;
+}
 ```
 
 **Issue: Services won't start**
+
 ```bash
 # Check logs
 docker compose logs backend
@@ -465,6 +487,7 @@ docker compose up
 ```
 
 **Issue: Database not persisting**
+
 ```bash
 # Check volume
 docker volume ls | grep iris-arc
@@ -504,6 +527,7 @@ docker compose logs -f
 ```
 
 **Service Architecture:**
+
 ```
 ┌─────────────────────────────────────────┐
 │         Docker Compose Network          │
@@ -522,6 +546,7 @@ docker compose logs -f
 ```
 
 **Docker Features:**
+
 - Multi-stage builds for optimized image sizes
 - Health checks for service monitoring
 - Volume persistence for backend database
@@ -568,6 +593,7 @@ vercel --prod
 ```
 
 Set environment variable in Vercel:
+
 - `NEXT_PUBLIC_BACKEND_BASE_URL` = your backend URL
 
 #### Railway / Fly.io / VPS (Backend)
@@ -578,6 +604,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 Or use Docker on cloud platforms:
+
 ```bash
 # Build and push to registry
 docker build -t your-registry/iris-arc-backend:latest ./backend
@@ -621,11 +648,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Developed by:** Harshith B and collaborators
 
 **Inspired by:**
+
 - ChatGPT's conversational interface design
 - FastAPI's async streaming patterns
 - Modern security operations center (SOC) workflows
 
 **Built with amazing open-source tools:**
+
 - Next.js, React, FastAPI, SQLAlchemy, Tailwind CSS, Radix UI, and many more
 
 ---
@@ -633,15 +662,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📧 Contact & Support
 
 For questions, issues, or contributions:
-- **GitHub Issues:** [Create an issue](https://github.com/<your-username>/iris-arc/issues)
+
+- **GitHub Issues:** [Create an issue](https://github.com/devharshithb/iris-arc/issues)
 - **Docker Issues:** Check troubleshooting section above
-- **Email:** [your-email@example.com]
+- **Email:** [code.harshithb@gmail.com]
 
 ---
 
 **Ready to start?**
 
 **With Docker (Recommended):**
+
 ```bash
 cd iris-arc
 cp .env.example .env
@@ -650,6 +681,7 @@ docker compose up --build
 ```
 
 **Without Docker:**
+
 ```bash
 # Terminal 1: Backend
 cd backend && source venv/bin/activate

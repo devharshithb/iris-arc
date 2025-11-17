@@ -120,6 +120,7 @@ docker compose up frontend
 ```
 
 This will:
+
 - Build Next.js in standalone mode
 - Multi-stage build for optimized image size
 - Run as non-root user (nextjs)
@@ -169,19 +170,20 @@ npm run dev
 ```
 
 The application will start at:
+
 - **Web App:** http://localhost:3000
 
 ---
 
 ## 📜 Available Scripts
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `pnpm dev`           | Start development server (http://localhost:3000) |
-| `pnpm build`         | Build production bundle                        |
-| `pnpm start`         | Run production server                          |
-| `pnpm lint`          | Run ESLint linter                              |
-| `pnpm type-check`    | Run TypeScript type checking                   |
+| Command           | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `pnpm dev`        | Start development server (http://localhost:3000) |
+| `pnpm build`      | Build production bundle                          |
+| `pnpm start`      | Run production server                            |
+| `pnpm lint`       | Run ESLint linter                                |
+| `pnpm type-check` | Run TypeScript type checking                     |
 
 ---
 
@@ -229,6 +231,7 @@ The application will start at:
 ### Protected Routes
 
 The middleware checks authentication for all routes except:
+
 - `/login`
 - `/register`
 - `/public/*`
@@ -241,8 +244,8 @@ Tokens are managed via the API client in `src/lib/api.ts`:
 // Example API call with authentication
 const response = await api.get('/api/chats', {
   headers: {
-    Authorization: `Bearer ${accessToken}`
-  }
+    Authorization: `Bearer ${accessToken}`,
+  },
 });
 ```
 
@@ -253,6 +256,7 @@ const response = await api.get('/api/chats', {
 ### Theme System
 
 The app supports three theme modes:
+
 - **Light** — Light color scheme
 - **Dark** — Dark color scheme
 - **System** — Follows OS preference
@@ -264,7 +268,7 @@ import { useTheme } from 'next-themes';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  
+
   return (
     <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
       Toggle Theme
@@ -307,13 +311,13 @@ const projects = await api.get('/api/projects');
 // Create conversation
 const conversation = await api.post('/api/chats', {
   title: 'New Investigation',
-  project_id: 1
+  project_id: 1,
 });
 
 // Stream chat response
 const stream = await api.streamChat({
   message: 'Analyze this incident',
-  conversation_id: 1
+  conversation_id: 1,
 });
 ```
 
@@ -327,9 +331,9 @@ async function streamChat(message: string) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message }),
   });
 
   const reader = response.body?.getReader();
@@ -338,7 +342,7 @@ async function streamChat(message: string) {
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    
+
     const chunk = decoder.decode(value);
     // Update UI with chunk
   }
@@ -352,6 +356,7 @@ async function streamChat(message: string) {
 ### Zustand Store
 
 Global state management for:
+
 - User authentication state
 - Active project
 - Conversations list
@@ -441,6 +446,7 @@ pnpm build
 ```
 
 This will:
+
 1. Type check the codebase
 2. Lint all files
 3. Build optimized production bundle
@@ -493,19 +499,21 @@ CMD ["node", "server.js"]
 **Next.js Configuration for Docker:**
 
 The `next.config.ts` is configured for Docker builds:
+
 ```typescript
 const nextConfig: NextConfig = {
-  output: 'standalone',           // Enable standalone output
+  output: 'standalone', // Enable standalone output
   eslint: {
-    ignoreDuringBuilds: true      // Skip ESLint in Docker builds
+    ignoreDuringBuilds: true, // Skip ESLint in Docker builds
   },
   typescript: {
-    ignoreBuildErrors: true        // Skip type checking in Docker builds
-  }
+    ignoreBuildErrors: true, // Skip type checking in Docker builds
+  },
 };
 ```
 
 **Build and run:**
+
 ```bash
 # From web directory
 docker build -t iris-arc-frontend .
@@ -517,6 +525,7 @@ docker compose up frontend
 ```
 
 **Docker Features:**
+
 - Multi-stage build reduces image size by ~70%
 - Non-root user for security
 - Health checks for monitoring
@@ -529,6 +538,7 @@ docker compose up frontend
 1. **Connect your repository to Vercel**
 
 2. **Set environment variables in Vercel dashboard:**
+
    - `NEXT_PUBLIC_BACKEND_BASE_URL` — Your backend API URL
 
 3. **Deploy:**
@@ -624,11 +634,7 @@ export const MyComponent: FC<MyComponentProps> = ({ title }) => {
 ```tsx
 import { cn } from '@/lib/utils';
 
-<div className={cn(
-  "base-classes",
-  isActive && "active-classes",
-  className
-)} />
+<div className={cn('base-classes', isActive && 'active-classes', className)} />;
 ```
 
 ---
@@ -638,6 +644,7 @@ import { cn } from '@/lib/utils';
 ### Common Issues
 
 **Issue:** `Module not found` error
+
 ```bash
 # Clear cache and reinstall
 rm -rf node_modules .next
@@ -645,18 +652,21 @@ pnpm install
 ```
 
 **Issue:** Environment variables not working
+
 ```bash
 # Make sure variables start with NEXT_PUBLIC_ for client-side access
 # Restart dev server after changing .env.local
 ```
 
 **Issue:** Tailwind styles not applying
+
 ```bash
 # Check tailwind.config.ts content paths
 # Ensure globals.css is imported in layout.tsx
 ```
 
 **Issue:** API connection errors
+
 ```bash
 # Verify NEXT_PUBLIC_BACKEND_BASE_URL is correct
 # Check that backend server is running
