@@ -66,14 +66,14 @@ function mapMessage(m: any, chatId: string): Message {
 /*                                   Chats                                     */
 /* -------------------------------------------------------------------------- */
 export async function listChats(): Promise<Thread[]> {
-  const r = await apiFetch("/api/chats");
+  const r = await apiFetch("/api/chats/");
   if (!r.ok) throw new Error(`listChats failed: ${r.status}`);
   const data = await r.json();
   return (data.items ?? []).map(mapChat);
 }
 
 export async function createChat(title = "New Chat"): Promise<Thread> {
-  const r = await apiFetch("/api/chats", {
+  const r = await apiFetch("/api/chats/", {
     method: "POST",
     body: JSON.stringify({ title }),
   });
@@ -99,7 +99,7 @@ export async function deleteChat(id: string): Promise<void> {
 /*                                  Messages                                   */
 /* -------------------------------------------------------------------------- */
 export async function listMessages(chatId: string): Promise<Message[]> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages`);
+  const r = await apiFetch(`/api/chats/${chatId}/messages/`);
   if (!r.ok) throw new Error(`listMessages failed: ${r.status}`);
   const data = await r.json();
   return (data.items ?? []).map((m: any) => mapMessage(m, chatId));
@@ -109,7 +109,7 @@ export async function addMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages/`, {
     method: "POST",
     body: JSON.stringify({ role: "user", content }),
   });
@@ -127,7 +127,7 @@ export async function addAssistantMessage(
   chatId: string,
   content: string
 ): Promise<Message> {
-  const r = await apiFetch(`/api/chats/${chatId}/messages`, {
+  const r = await apiFetch(`/api/chats/${chatId}/messages/`, {
     method: "POST",
     body: JSON.stringify({ role: "assistant", content }),
   });
