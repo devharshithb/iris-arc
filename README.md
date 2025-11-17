@@ -9,15 +9,16 @@ The architecture emphasizes **modularity, explainability, and extensibility**, e
 
 ## 🚀 Overview
 
-Iris Arc provides:
+Iris Arc is a full-stack application that combines modern web technologies to deliver a powerful cybersecurity analysis platform. The system features:
 
-- Real-time token streaming from FastAPI → Next.js
-- Persistent chat threads managed through Zustand
-- Secure authentication (JWT + bcrypt)
-- Dark / light / system theme sync
-- File uploads + document attachment handling
-- Markdown + syntax-highlighted code rendering
-- Clean, responsive UI using Tailwind + shadcn + Framer Motion
+- **Real-time AI Chat Interface** — Token streaming from FastAPI to Next.js for responsive AI interactions
+- **Multi-Agent Architecture** — Coordinated agents for threat analysis, incident response, and security recommendations
+- **Project Management** — Organize security incidents, investigations, and analysis sessions
+- **Secure Authentication** — JWT-based auth with bcrypt password hashing and refresh token support
+- **Persistent Conversations** — SQLite-based chat history with full thread management
+- **Modern UI/UX** — Dark/light/system theme support with smooth animations and responsive design
+- **File & Document Handling** — Drag-and-drop uploads, attachment management, and document preview
+- **Code-Aware Rendering** — Syntax-highlighted code blocks with markdown support
 
 ---
 
@@ -25,13 +26,36 @@ Iris Arc provides:
 
 ```
 iris-arc/
-├── backend/              # FastAPI service (Python 3.11+)
-│   └── main.py
-└── web/                  # Next.js 15 frontend (TypeScript + Tailwind)
+├── backend/                    # FastAPI Backend (Python 3.11+)
+│   ├── app/
+│   │   ├── api/               # API route handlers
+│   │   │   ├── auth/          # Authentication endpoints
+│   │   │   ├── chats/         # Chat management endpoints
+│   │   │   ├── projects/      # Project management endpoints
+│   │   │   └── stream/        # SSE streaming endpoints
+│   │   ├── core/              # Core configurations
+│   │   │   ├── config.py      # Settings & environment vars
+│   │   │   └── security.py    # JWT & password utilities
+│   │   ├── db/                # Database models & session
+│   │   ├── models/            # SQLAlchemy ORM models
+│   │   ├── schemas/           # Pydantic schemas
+│   │   └── main.py            # FastAPI app entry point
+│   ├── requirements.txt       # Python dependencies
+│   ├── .env                   # Backend environment variables
+│   └── irisarc.db            # SQLite database (auto-generated)
+│
+└── web/                       # Next.js 15 Frontend (TypeScript)
     ├── src/
-    ├── public/
-    ├── package.json
-    └── tsconfig.json
+    │   ├── app/               # Next.js 15 App Router pages
+    │   ├── components/        # React components
+    │   ├── lib/               # Utilities & API client
+    │   ├── types/             # TypeScript type definitions
+    │   └── pages/             # Additional pages
+    ├── public/                # Static assets
+    ├── package.json           # Node dependencies
+    ├── next.config.ts         # Next.js configuration
+    ├── tsconfig.json          # TypeScript configuration
+    └── .env.local             # Frontend environment variables
 ```
 
 ---
@@ -40,22 +64,39 @@ iris-arc/
 
 ### Frontend (Web)
 
-- **Framework:** Next.js 15 (App Router + React 19 + TypeScript)
-- **Styling:** Tailwind CSS 4 + Radix UI + shadcn/ui
-- **Animations:** Framer Motion
-- **State Management:** Zustand + React Context
-- **Markdown:** react-markdown + rehype-highlight + remark-gfm
-- **Toasts & UX:** sonner
-- **Package Manager:** pnpm (LTS)
+- **Framework:** Next.js 15 with App Router
+- **UI Library:** React 19 with TypeScript
+- **Styling:** Tailwind CSS 4 + shadcn/ui components
+- **UI Components:** Radix UI primitives (Dialog, Dropdown, Tooltip, etc.)
+- **Animations:** Framer Motion for smooth transitions
+- **State Management:** Zustand for global state
+- **Markdown Rendering:** react-markdown with syntax highlighting (rehype-highlight)
+- **Code Highlighting:** highlight.js with GitHub Dark Dimmed theme
+- **Drag & Drop:** @hello-pangea/dnd for file management
+- **Theme:** next-themes for dark/light mode
+- **Toast Notifications:** sonner
+- **Package Manager:** pnpm
 
 ### Backend (API)
 
-- **Framework:** FastAPI (Python 3.11+)
-- **Runtime:** Uvicorn ASGI
-- **Auth:** JWT (access + refresh) + bcrypt / passlib
-- **DB (placeholder):** MongoDB or PostgreSQL w/ pgvector
-- **CORS & Security:** Configured for frontend <-> backend communication
-- **Streaming:** Async token streaming via `StreamingResponse`
+- **Framework:** FastAPI (async Python web framework)
+- **Runtime:** Uvicorn ASGI server
+- **Database:** SQLite with SQLAlchemy ORM
+- **Authentication:** 
+  - JWT (JSON Web Tokens) for stateless auth
+  - bcrypt for password hashing
+  - Access & refresh token pattern
+- **Validation:** Pydantic v2 for request/response schemas
+- **Streaming:** Server-Sent Events (SSE) for real-time AI responses
+- **CORS:** Configured for local development & production
+- **Environment:** python-dotenv for configuration management
+
+### Database Schema
+
+- **Users** — Authentication and user profiles
+- **Projects** — Security incident organization
+- **Conversations** — Chat thread metadata
+- **Messages** — Individual chat messages with role-based structure
 
 ---
 
@@ -63,19 +104,25 @@ iris-arc/
 
 ### System Requirements
 
-- **Ubuntu 22.04 / WSL2** (recommended)
-- **Node LTS (≥ 18)** + **pnpm** (`npm install -g pnpm`)
-- **Python ≥ 3.11** + **pip/venv/uv**
-- **Git + OpenSSH** (for cloning via SSH)
-- **VS Code** with extensions:
+- **Operating System:** Ubuntu 22.04, macOS, or Windows with WSL2
+- **Node.js:** v18 or higher (LTS recommended)
+- **pnpm:** Latest version (`npm install -g pnpm`)
+- **Python:** 3.11 or higher
+- **Git:** For version control
+- **Code Editor:** VS Code, Cursor, or similar (recommended extensions below)
 
-  - Tailwind CSS IntelliSense
-  - Python
-  - Prettier / ESLint
+### Recommended VS Code Extensions
+
+- **Tailwind CSS IntelliSense** — Autocomplete for Tailwind classes
+- **Python** — Python language support
+- **Pylance** — Fast Python type checking
+- **ESLint** — JavaScript/TypeScript linting
+- **Prettier** — Code formatting
+- **TypeScript and JavaScript Language Features** — Enhanced TS support
 
 ---
 
-## 🧭 Setup Guide
+## 🧭 Quick Start
 
 ### 1️⃣ Clone the Repository
 
@@ -86,194 +133,296 @@ cd iris-arc
 
 ---
 
-### 2️⃣ Backend Setup (FastAPI)
+### 2️⃣ Backend Setup
 
 ```bash
 cd backend
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Create .env file (or copy from .env.example)
+cat > .env << EOF
+JWT_SECRET=your-super-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=10080
+FRONTEND_ORIGIN=http://localhost:3000
+SHOW_DEV_OTP=1
+EOF
+
+# Run the backend server
+uvicorn app.main:app --reload --port 8000
 ```
 
-Run the backend server (default port 8000):
-
-```bash
-uvicorn main:app --reload --port 8000
-```
-
-Verify:
-
-> [http://localhost:8000/docs](http://localhost:8000/docs) → OpenAPI interactive docs
+The backend will be available at:
+- **API:** http://localhost:8000
+- **Interactive Docs:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
 
 ---
 
-### 3️⃣ Frontend Setup (Next.js)
+### 3️⃣ Frontend Setup
 
 ```bash
 cd web
+
+# Install dependencies
 pnpm install
+
+# Create .env.local file
+echo "NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000" > .env.local
+
+# Run the development server
 pnpm dev
 ```
 
-By default, it runs at:
-
-> [http://localhost:3000](http://localhost:3000)
-
-The frontend will automatically connect to the backend at `http://localhost:8000` (update `.env.local` if needed).
+The frontend will be available at:
+- **Web App:** http://localhost:3000
 
 ---
 
 ## ⚙️ Environment Variables
 
-### Frontend (`web/.env.local`)
-
-```bash
-NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
-```
-
 ### Backend (`backend/.env`)
 
 ```bash
-MONGODB_URI=mongodb://127.0.0.1:27017
-MONGODB_DB=iris_arc
-JWT_SECRET=your_secret_key
+# JWT Configuration
+JWT_SECRET=your-super-secret-key-change-in-production
 JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=10080
+JWT_EXPIRE_MINUTES=10080      # 7 days
+
+# CORS Configuration
 FRONTEND_ORIGIN=http://localhost:3000
-SHOW_DEV_OTP=1
 
+# Development Settings
+SHOW_DEV_OTP=1                 # Show OTP in console for testing
+```
 
+### Frontend (`web/.env.local`)
+
+```bash
+# Backend API URL
+NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 ```
 
 ---
 
-## 🧩 Development Scripts
+## 🧩 Available Scripts
 
-### Web (frontend)
+### Frontend (web/)
 
-| Command      | Description                                                               |
-| ------------ | ------------------------------------------------------------------------- |
-| `pnpm dev`   | Start Next.js dev server ([http://localhost:3000](http://localhost:3000)) |
-| `pnpm build` | Build production bundle                                                   |
-| `pnpm start` | Run production server                                                     |
-| `pnpm lint`  | Lint codebase with ESLint                                                 |
+| Command            | Description                          |
+| ------------------ | ------------------------------------ |
+| `pnpm dev`         | Start development server (port 3000) |
+| `pnpm build`       | Build production bundle              |
+| `pnpm start`       | Run production server                |
+| `pnpm lint`        | Run ESLint                           |
+| `pnpm type-check`  | TypeScript type checking             |
 
-### Backend (FastAPI)
+### Backend (backend/)
 
-| Command                                 | Description               |
-| --------------------------------------- | ------------------------- |
-| `uvicorn main:app --reload --port 8000` | Run dev server            |
-| `pytest`                                | Run tests (if configured) |
-
----
-
-## 🌙 Features by Phase (High-Level)
-
-| Phase     | Description                                               |
-| --------- | --------------------------------------------------------- |
-| **0**     | Environment + Repo Setup (WSL2 + Node + Python toolchain) |
-| **1**     | App Shell & Layout (UI structure, Sidebar + Composer)     |
-| **2**     | Frontend ↔ Backend Streaming Orchestration                |
-| **3**     | Global Zustand Store + UI State Integration               |
-| **4**     | Markdown + Code Rendering System                          |
-| **5**     | Authentication (JWT + Frontend Forms)                     |
-| **6**     | Conversations + Persistence (Thread management)           |
-| **7**     | File Attachment Support (Drag & Drop / Preview)           |
-| **8**     | Unified API Client Layer (lib/api.ts)                     |
-| **9-10**  | LLM Integration + RAG Pipeline (coming soon)              |
-| **11-15** | Sidebar UX, Settings, Hardening, CI/CD, Optimization      |
+| Command                                      | Description                      |
+| -------------------------------------------- | -------------------------------- |
+| `uvicorn app.main:app --reload --port 8000`  | Start development server         |
+| `uvicorn app.main:app --host 0.0.0.0 --port 8000` | Start production server   |
+| `python -m pytest`                           | Run tests (when configured)      |
 
 ---
 
-## 🧠 Developer Workflow
+## 🔑 Key Features
 
-1. **Pull latest main**
+### 1. Authentication System
+- User registration with email validation
+- Secure login with JWT tokens
+- Password hashing using bcrypt
+- Refresh token mechanism for seamless sessions
+- Protected routes on both frontend and backend
 
-   ```bash
-   git pull origin main
-   ```
+### 2. Project Management
+- Create and organize security investigation projects
+- Associate conversations with specific projects
+- Project-based access control and filtering
 
-2. **Run both servers**
+### 3. Conversational AI Interface
+- Real-time streaming responses from AI agents
+- Message history persistence
+- Support for multiple concurrent conversations
+- Role-based messages (user, assistant, system)
+- Markdown rendering with code syntax highlighting
 
-   - Terminal 1: `uvicorn main:app --reload`
-   - Terminal 2: `pnpm dev`
+### 4. File Management
+- Drag-and-drop file uploads
+- Document attachment to messages
+- File preview and download capabilities
+- Support for multiple file types
 
-3. **Edit → Test → Commit**
-
-   ```bash
-   git add .
-   git commit -m "feat: update chat composer behavior"
-   git push origin main
-   ```
+### 5. Modern UI/UX
+- Responsive design for desktop and mobile
+- Dark/light/system theme preferences
+- Smooth animations and transitions
+- Keyboard shortcuts for power users
+- Toast notifications for user feedback
 
 ---
 
-## 🧰 Recommended Tools
+## 🧠 Architecture Overview
 
-| Purpose              | Tool                    |
-| -------------------- | ----------------------- |
-| Package Manager      | pnpm                    |
-| Linting / Formatting | ESLint + Prettier       |
-| Version Control      | Git + SSH               |
-| Python Deps          | pip / uv                |
-| Process Manager      | pm2 (optional for prod) |
-| Editor               | VS Code / Cursor / Zed  |
+### Request Flow
+
+1. **User interacts with UI** (web/src/app)
+2. **API call via lib/api.ts** → HTTP request to FastAPI
+3. **FastAPI route handler** (backend/app/api) processes request
+4. **Database interaction** via SQLAlchemy models
+5. **Response sent back** to frontend
+6. **UI updates** with new data
+
+### Streaming Flow
+
+1. **User sends message** → POST to `/api/stream/chat`
+2. **Backend initiates SSE stream** → `StreamingResponse`
+3. **AI agent generates tokens** → Streamed in real-time
+4. **Frontend receives chunks** → `EventSource` or fetch with streaming
+5. **UI updates incrementally** → Smooth typing effect
 
 ---
 
-## 🧾 Deployment Notes
+## 🚀 Development Workflow
 
-### Frontend
+### Daily Development
 
-Deployed via **Vercel** or **Node server**:
+1. Start both servers in separate terminals:
 
 ```bash
-pnpm build
-pnpm start
-```
+# Terminal 1: Backend
+cd backend && source venv/bin/activate
+uvicorn app.main:app --reload --port 8000
 
-### Backend
-
-Deployed via **Railway**, **Fly.io**, or **Docker**:
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-Add appropriate CORS and JWT configurations for production domains.
-
----
-
-## 🧑‍💻 Contributing
-
-1. Fork → Clone → Create feature branch
-2. Keep commits small & descriptive
-3. Submit a PR with clear title and linked issue
-
----
-
-## 🪶 License
-
-No Licensed Yet
-
----
-
-### 🌟 Credits
-
-Developed by **Harshith B** and collaborators.
-Architecture inspired by **ChatGPT’s frontend and FastAPI streaming patterns**.
-
----
-
-**Run locally:**
-
-```bash
-# In two terminals
-cd backend && uvicorn main:app --reload
+# Terminal 2: Frontend
 cd web && pnpm dev
 ```
 
-Then open 👉 **[http://localhost:3000](http://localhost:3000)**
+2. Make changes and test locally
+3. Commit with descriptive messages:
+
+```bash
+git add .
+git commit -m "feat: add project filtering to sidebar"
+git push origin main
+```
+
+### Code Style
+
+- **Frontend:** ESLint + Prettier for consistent formatting
+- **Backend:** Follow PEP 8 Python style guide
+- **Commits:** Use conventional commits (feat, fix, docs, refactor, etc.)
+
+---
+
+## 🧪 Testing
+
+Currently, testing infrastructure is being set up. Planned testing stack:
+
+- **Frontend:** Jest + React Testing Library
+- **Backend:** pytest + pytest-asyncio
+- **E2E:** Playwright or Cypress
+
+---
+
+## 🧾 Deployment
+
+### Frontend (Vercel - Recommended)
+
+```bash
+cd web
+pnpm build
+# Deploy to Vercel
+vercel --prod
+```
+
+### Backend (Railway, Fly.io, or Docker)
+
+```bash
+cd backend
+# For production, use gunicorn or similar
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+### Docker Deployment (Optional)
+
+Create `Dockerfile` for backend:
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with clear, descriptive commits
+4. Test your changes thoroughly
+5. Push to your fork and submit a Pull Request
+6. Ensure PR description clearly explains the changes
+
+### Contribution Areas
+
+- Bug fixes and improvements
+- New agent capabilities
+- UI/UX enhancements
+- Documentation improvements
+- Test coverage expansion
+- Performance optimizations
+
+---
+
+## 📝 License
+
+This project is currently unlicensed. License will be added in future releases.
+
+---
+
+## 🌟 Credits & Acknowledgments
+
+**Developed by:** Harshith B and collaborators
+
+**Inspired by:**
+- ChatGPT's conversational interface design
+- FastAPI's async streaming patterns
+- Modern security operations center (SOC) workflows
+
+**Built with amazing open-source tools:**
+- Next.js, React, FastAPI, SQLAlchemy, Tailwind CSS, Radix UI, and many more
+
+---
+
+## 📧 Contact & Support
+
+For questions, issues, or contributions:
+- **GitHub Issues:** [Create an issue](https://github.com/<your-username>/iris-arc/issues)
+- **Email:** [your-email@example.com]
+
+---
+
+**Ready to start?**
+
+```bash
+# Terminal 1: Start backend
+cd backend && uvicorn app.main:app --reload
+
+# Terminal 2: Start frontend
+cd web && pnpm dev
+```
+
+Then open **[http://localhost:3000](http://localhost:3000)** and start building! 🚀
