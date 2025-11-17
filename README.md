@@ -410,8 +410,8 @@ This project is currently unlicensed. License will be added in future releases.
 ## 📧 Contact & Support
 
 For questions, issues, or contributions:
-- **GitHub Issues:** [Create an issue](https://github.com/<your-username>/iris-arc/issues)
-- **Email:** [your-email@example.com]
+- **GitHub Issues:** [Create an issue](https://github.com/devharshithb/iris-arc/issues)
+- **Email:** [code.harshithb@gmail.com]
 
 ---
 
