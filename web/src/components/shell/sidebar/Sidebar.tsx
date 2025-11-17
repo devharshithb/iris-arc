@@ -108,7 +108,7 @@ export default function Sidebar() {
       return map;
    }, [sortedThreads]);
 
-   const onDragEnd = (result: DropResult) => {
+   const onDragEnd = async (result: DropResult) => {
       const { destination, draggableId } = result;
       if (!destination) return;
 
@@ -120,13 +120,18 @@ export default function Sidebar() {
                ? destId.slice(5)
                : undefined;
 
-      assignThreadToProject(draggableId, newProjectId);
-      toast.success(
-         newProjectId
-            ? `Moved to ${projects.find((p: Project) => p.id === newProjectId)?.name || "project"
-            }`
-            : "Moved to All Chats"
-      );
+      try {
+         await assignThreadToProject(draggableId, newProjectId);
+         toast.success(
+            newProjectId
+               ? `Moved to ${projects.find((p: Project) => p.id === newProjectId)?.name || "project"
+               }`
+               : "Moved to All Chats"
+         );
+      } catch (e) {
+         console.error("Failed to move chat via drag:", e);
+         toast.error("Failed to move chat");
+      }
    };
 
    const handleNewChat = async () => {

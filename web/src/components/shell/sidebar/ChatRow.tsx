@@ -245,18 +245,23 @@ export default function ChatRow({
                                                 key={p.id}
                                                 onClick={async (e) => {
                                                    e.stopPropagation();
-                                                   console.log(`Moving chat ${t.id} to project ${p.id}`);
+                                                   e.preventDefault();
+                                                   console.log(`[ChatRow] Clicked project: ${p.name} (${p.id})`);
+                                                   console.log(`[ChatRow] Moving chat ${t.id} to project ${p.id}`);
+                                                   
+                                                   setOpenMenuId(null);
+                                                   setSubMenuForMove(null);
+                                                   
                                                    try {
                                                       await assignThreadToProject(t.id, p.id);
-                                                      setOpenMenuId(null);
-                                                      setSubMenuForMove(null);
+                                                      console.log(`[ChatRow] Successfully moved chat`);
                                                       toast.success(`Moved to ${p.name}`);
                                                    } catch (err) {
-                                                      console.error("Failed to move chat:", err);
+                                                      console.error("[ChatRow] Failed to move chat:", err);
                                                       toast.error("Failed to move chat");
                                                    }
                                                 }}
-                                                className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
+                                                className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left cursor-pointer"
                                              >
                                                 <Folder className="h-4 w-4" /> {p.name}
                                              </button>

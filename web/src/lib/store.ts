@@ -113,9 +113,9 @@ export type State = {
 
   /* ---------------- Project Ops ---------------- */
   createProject: (name: string) => string;
-  renameProject: (id: string, name: string) => void;
-  deleteProject: (id: string) => void;
-  assignThreadToProject: (tid: string, pid?: string) => void;
+  renameProject: (id: string, name: string) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  assignThreadToProject: (tid: string, pid?: string) => Promise<void>;
   setProjectFilter: (pid?: string) => void;
 
   /* ---------------- Search ---------------- */
@@ -579,16 +579,20 @@ export const useAppStore = createWithEqualityFn<State>()(
         }
       },
       assignThreadToProject: async (tid, pid) => {
+        console.log(`[STORE] assignThreadToProject called: tid=${tid}, pid=${pid}`);
         set((s) => ({
           threads: s.threads.map((t) =>
-            t.id === tid ? { ...t, projectId: pid } : t
+            t.id === tid ? { ...t, projectId: pid, updatedAt: Date.now() } : t
           ),
         }));
         // Sync to server
         try {
+          console.log(`[STORE] Calling apiUpdateChatProject...`);
           await apiUpdateChatProject(tid, pid || null);
+          console.log(`[STORE] Successfully updated chat project on server`);
         } catch (e) {
-          console.error("Failed to update chat project on server:", e);
+          console.error("[STORE] Failed to update chat project on server:", e);
+          throw e; // Re-throw so caller can handle
         }
       },
       setProjectFilter: (pid) => set({ currentProjectFilter: pid }),
