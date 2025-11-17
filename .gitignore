@@ -32,3 +32,9 @@ coverage/
 # Virtual Environment
 .venv/
 __pycache__/
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

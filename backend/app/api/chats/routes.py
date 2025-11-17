@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.session import get_db
 from app.models import Chat, Message, User
 from app.schemas import (
@@ -38,11 +38,9 @@ def create_chat(
     user: User = Depends(get_current_user),
 ):
     chat = Chat(
-    title=payload.title or "New Chat",
-    user_id=user.id,
-    created_at=datetime.utcnow(),
-    updated_at=datetime.utcnow()
-)
+        title=payload.title or "New Chat",
+        user_id=user.id,
+    )
     db.add(chat)
     db.commit()
     db.refresh(chat)
@@ -91,7 +89,7 @@ def add_message(
 
     msg = Message(chat_id=chat_id, role=payload.role, content=payload.content)
     db.add(msg)
-    chat.updated_at = msg.created_at
+    chat.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(msg)
     return msg
