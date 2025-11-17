@@ -241,18 +241,24 @@ export default function Sidebar() {
   const visibleProjects = showAllProjects ? projects : projects.slice(0, PROJECTS_VISIBLE);
   const hasMoreProjects = projects.length > PROJECTS_VISIBLE;
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = async (result: DropResult) => {
     const { destination, draggableId } = result;
     if (!destination) return;
     const destId = destination.droppableId;
     const newProjectId =
       destId === "global" ? undefined : destId.startsWith("proj:") ? destId.slice(5) : undefined;
-    assignThreadToProject(draggableId, newProjectId);
-    toast.success(
-      newProjectId
-        ? `Moved to ${projects.find((p) => p.id === newProjectId)?.name || "project"}`
-        : "Moved to All Chats"
-    );
+    
+    try {
+      await assignThreadToProject(draggableId, newProjectId);
+      toast.success(
+        newProjectId
+          ? `Moved to ${projects.find((p) => p.id === newProjectId)?.name || "project"}`
+          : "Moved to All Chats"
+      );
+    } catch (e) {
+      console.error("Failed to move chat via drag and drop:", e);
+      toast.error("Failed to move chat");
+    }
   };
 
   return (
@@ -932,10 +938,15 @@ function ChatRow({
                   {/* Remove from project */}
                   {t.projectId && (
                     <button
-                      onClick={() => {
-                        assignThreadToProject(t.id, undefined);
-                        setOpenMenuId(null);
-                        toast.success("Removed from project");
+                      onClick={async () => {
+                        try {
+                          await assignThreadToProject(t.id, undefined);
+                          setOpenMenuId(null);
+                          toast.success("Removed from project");
+                        } catch (e) {
+                          console.error("Failed to remove from project:", e);
+                          toast.error("Failed to remove from project");
+                        }
                       }}
                       className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
                     >
@@ -972,11 +983,16 @@ function ChatRow({
                           {projects.map((p2: any) => (
                             <button
                               key={p2.id}
-                              onClick={() => {
-                                assignThreadToProject(t.id, p2.id);
-                                setOpenMenuId(null);
-                                setSubMenuForMove(null);
-                                toast.success(`Moved to ${p2.name}`);
+                              onClick={async () => {
+                                try {
+                                  await assignThreadToProject(t.id, p2.id);
+                                  setOpenMenuId(null);
+                                  setSubMenuForMove(null);
+                                  toast.success(`Moved to ${p2.name}`);
+                                } catch (e) {
+                                  console.error("Failed to move to project:", e);
+                                  toast.error("Failed to move chat");
+                                }
                               }}
                               className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
                             >
