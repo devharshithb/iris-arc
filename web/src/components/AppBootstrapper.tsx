@@ -2,7 +2,7 @@
 
 import { useAppStore } from "@/lib/store";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * AppBootstrapper
@@ -12,9 +12,10 @@ import { useEffect } from "react";
  */
 export default function AppBootstrapper() {
    const { data: session, status } = useSession();
+   const hasBootstrapped = useRef(false);
 
    useEffect(() => {
-      if (status === "authenticated") {
+      if (status === "authenticated" && !hasBootstrapped.current) {
          // Accept both custom .backend tokens or direct token fields
          const backend = (session as any)?.backend ?? session;
          const accessToken =
@@ -36,10 +37,18 @@ export default function AppBootstrapper() {
          console.log("🔐 Tokens synced to localStorage");
          console.log("🔄 Bootstrapping chats from backend…");
 
+         // Mark as bootstrapped before calling to prevent duplicate runs
+         hasBootstrapped.current = true;
+
          // Small delay to ensure localStorage write is complete
          setTimeout(() => {
             useAppStore.getState().bootstrapAfterLogin();
          }, 0);
+      }
+      
+      // Reset bootstrap flag when user logs out
+      if (status === "unauthenticated") {
+         hasBootstrapped.current = false;
       }
    }, [status, session]);
 
