@@ -14,6 +14,7 @@ import SearchPanel from "../SearchPanel";
 import ChatList from "./ChatList";
 import ProjectList from "./ProjectList";
 import SidebarHeader from "./SidebarHeader";
+import { renameChat as apiRenameChat } from "@/lib/chatApi";
 
 import type { Chat, Project } from "./SidebarTypes";
 
@@ -32,6 +33,7 @@ export default function Sidebar() {
       setProjectFilter,
       currentProjectFilter,
       assignThreadToProject,
+      deleteChat,
    } = useAppStore();
 
    const [searchOpen, setSearchOpen] = useState(false);
@@ -59,22 +61,35 @@ export default function Sidebar() {
       return () => document.removeEventListener("mousedown", handleClickOutside);
    }, []);
 
-   const handleInlineChatRename = (id: string, value: string) => {
+   const handleInlineChatRename = async (id: string, value: string) => {
       const v = value.trim();
       if (!v) return setEditingChatId(null);
+      
+      // Update local state immediately for optimistic UI
       useAppStore.setState((s) => ({
          threads: s.threads.map((t) =>
             t.id === id ? { ...t, title: v, updatedAt: Date.now() } : t
          ),
       }));
       setEditingChatId(null);
+      
+      // Sync with backend
+      try {
+         await apiRenameChat(id, v);
+      } catch (e) {
+         console.error("Failed to rename chat on server:", e);
+         toast.error("Failed to rename chat");
+      }
    };
 
-   const handleDeleteChat = (id: string) => {
-      useAppStore.setState((s) => ({
-         threads: s.threads.filter((t) => t.id !== id),
-      }));
-      toast.success("Chat deleted successfully");
+   const handleDeleteChat = async (id: string) => {
+      try {
+         await deleteChat(id);
+         toast.success("Chat deleted successfully");
+      } catch (e) {
+         console.error("Failed to delete chat:", e);
+         toast.error("Failed to delete chat");
+      }
    };
 
    const sortedThreads = useMemo<Chat[]>(

@@ -182,10 +182,14 @@ export default function ChatRow({
 
                            {t.projectId && (
                               <button
-                                 onClick={() => {
-                                    assignThreadToProject(t.id, undefined);
-                                    setOpenMenuId(null);
-                                    toast.success("Removed from project");
+                                 onClick={async () => {
+                                    try {
+                                       await assignThreadToProject(t.id, undefined);
+                                       setOpenMenuId(null);
+                                       toast.success("Removed from project");
+                                    } catch (e) {
+                                       toast.error("Failed to remove from project");
+                                    }
                                  }}
                                  className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
                               >
@@ -213,6 +217,7 @@ export default function ChatRow({
                                           onClick={() => {
                                              setProjectDlgOpen(true);
                                              setSubMenuForMove(null);
+                                             setOpenMenuId(null);
                                           }}
                                           className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
                                        >
@@ -224,20 +229,30 @@ export default function ChatRow({
                                           style={{ borderColor: "var(--border-weak)" }}
                                        />
 
-                                       {projects.map((p: any) => (
-                                          <button
-                                             key={p.id}
-                                             onClick={() => {
-                                                assignThreadToProject(t.id, p.id);
-                                                setOpenMenuId(null);
-                                                setSubMenuForMove(null);
-                                                toast.success(`Moved to ${p.name}`);
-                                             }}
-                                             className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
-                                          >
-                                             <Folder className="h-4 w-4" /> {p.name}
-                                          </button>
-                                       ))}
+                                       {projects.length === 0 ? (
+                                          <div className="px-3 py-2 text-sm opacity-60">
+                                             No projects yet
+                                          </div>
+                                       ) : (
+                                          projects.map((p: any) => (
+                                             <button
+                                                key={p.id}
+                                                onClick={async () => {
+                                                   try {
+                                                      await assignThreadToProject(t.id, p.id);
+                                                      setOpenMenuId(null);
+                                                      setSubMenuForMove(null);
+                                                      toast.success(`Moved to ${p.name}`);
+                                                   } catch (e) {
+                                                      toast.error("Failed to move chat");
+                                                   }
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-sm w-full text-left"
+                                             >
+                                                <Folder className="h-4 w-4" /> {p.name}
+                                             </button>
+                                          ))
+                                       )}
                                     </motion.div>
                                  </PortalFlyout>
                               )}
