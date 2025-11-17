@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MoreHorizontal,
   Folder,
+  FolderPlus,
   ArrowRightLeft,
   Archive,
   Flag,
@@ -16,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 
 export default function ThreadMenu() {
-  const { threads, currentThreadId, projects, assignThreadToProject, deleteChat: deleteChatFromStore } = useAppStore();
+  const { threads, currentThreadId, projects, assignThreadToProject, deleteChat: deleteChatFromStore, createProject } = useAppStore();
   const thread = useMemo(
     () => threads.find((t) => t.id === currentThreadId),
     [threads, currentThreadId]
@@ -55,8 +56,24 @@ export default function ThreadMenu() {
       await assignThreadToProject(currentThreadId, projectId);
       toast.success(`Moved to: ${name}`);
     } catch (e) {
+      console.error("Failed to move chat:", e);
       toast.error("Failed to move chat");
     }
+  };
+
+  const onCreateNewProject = () => {
+    const name = prompt("Enter project name:");
+    if (name && name.trim()) {
+      const projectId = createProject(name.trim());
+      if (currentThreadId) {
+        assignThreadToProject(currentThreadId, projectId);
+        toast.success(`Created "${name}" and moved chat`);
+      } else {
+        toast.success(`Created project "${name}"`);
+      }
+    }
+    setOpen(false);
+    setSubmenuOpen(false);
   };
   
   const onRemoveFromProject = async () => {
@@ -67,6 +84,7 @@ export default function ThreadMenu() {
       await assignThreadToProject(currentThreadId, undefined);
       toast.success(`Removed from ${currentProject?.name}`);
     } catch (e) {
+      console.error("Failed to remove from project:", e);
       toast.error("Failed to remove from project");
     }
   };
@@ -82,6 +100,7 @@ export default function ThreadMenu() {
       await deleteChatFromStore(currentThreadId);
       toast.success("Chat deleted");
     } catch (e) {
+      console.error("Failed to delete chat:", e);
       toast.error("Failed to delete chat");
     }
   };
@@ -122,7 +141,10 @@ export default function ThreadMenu() {
               <button
                 onMouseEnter={() => setSubmenuOpen(true)}
                 onMouseLeave={() => setSubmenuOpen(false)}
-                onClick={() => setSubmenuOpen((v) => !v)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSubmenuOpen((v) => !v);
+                }}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-white/5"
                 role="menuitem"
                 aria-haspopup="menu"
@@ -169,14 +191,35 @@ export default function ThreadMenu() {
                     role="menu"
                     onMouseEnter={() => setSubmenuOpen(true)}
                     onMouseLeave={() => setSubmenuOpen(false)}
+                    onClick={(e) => e.stopPropagation()}
                   >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateNewProject();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 text-left"
+                      role="menuitem"
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New project
+                    </button>
+
+                    {projects.length > 0 && (
+                      <div className="my-1 h-px" style={{ backgroundColor: "var(--border-weak)" }} aria-hidden />
+                    )}
+
                     {projects.length === 0 ? (
                       <div className="px-3 py-2 text-sm opacity-70">No projects yet</div>
                     ) : (
                       projects.map((p) => (
                         <button
                           key={p.id}
-                          onClick={() => onMoveToProject(p.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(`Moving chat to project ${p.id}`);
+                            onMoveToProject(p.id);
+                          }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 text-left"
                           role="menuitem"
                         >
@@ -185,16 +228,6 @@ export default function ThreadMenu() {
                         </button>
                       ))
                     )}
-                    <div className="my-1 h-px" style={{ backgroundColor: "var(--border-weak)" }} aria-hidden />
-                    <button
-                      onClick={() => onMoveToProject(undefined)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 text-left"
-                      role="menuitem"
-                      title="Remove any project association"
-                    >
-                      <ArrowRightLeft className="h-4 w-4" />
-                      None (no project)
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>

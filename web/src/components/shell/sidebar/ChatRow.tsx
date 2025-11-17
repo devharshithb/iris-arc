@@ -165,6 +165,7 @@ export default function ChatRow({
                         <div className="relative">
                            <button
                               onClick={(e) => {
+                                 e.stopPropagation();
                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                                  setFlyoutPos({ top: rect.top, left: rect.right + 8 });
                                  setSubMenuForMove(subMenuForMove === t.id ? null : t.id);
@@ -182,12 +183,15 @@ export default function ChatRow({
 
                            {t.projectId && (
                               <button
-                                 onClick={async () => {
+                                 onClick={async (e) => {
+                                    e.stopPropagation();
                                     try {
                                        await assignThreadToProject(t.id, undefined);
                                        setOpenMenuId(null);
+                                       setSubMenuForMove(null);
                                        toast.success("Removed from project");
                                     } catch (e) {
+                                       console.error("Failed to remove from project:", e);
                                        toast.error("Failed to remove from project");
                                     }
                                  }}
@@ -212,9 +216,11 @@ export default function ChatRow({
                                           top: flyoutPos.top,
                                           left: flyoutPos.left,
                                        }}
+                                       onClick={(e) => e.stopPropagation()}
                                     >
                                        <button
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                             e.stopPropagation();
                                              setProjectDlgOpen(true);
                                              setSubMenuForMove(null);
                                              setOpenMenuId(null);
@@ -237,13 +243,16 @@ export default function ChatRow({
                                           projects.map((p: any) => (
                                              <button
                                                 key={p.id}
-                                                onClick={async () => {
+                                                onClick={async (e) => {
+                                                   e.stopPropagation();
+                                                   console.log(`Moving chat ${t.id} to project ${p.id}`);
                                                    try {
                                                       await assignThreadToProject(t.id, p.id);
                                                       setOpenMenuId(null);
                                                       setSubMenuForMove(null);
                                                       toast.success(`Moved to ${p.name}`);
-                                                   } catch (e) {
+                                                   } catch (err) {
+                                                      console.error("Failed to move chat:", err);
                                                       toast.error("Failed to move chat");
                                                    }
                                                 }}
