@@ -22,14 +22,24 @@ export default function AppBootstrapper() {
          const refreshToken =
             backend?.refreshToken || backend?.refresh_token || undefined;
 
-         if (accessToken) localStorage.setItem("access_token", accessToken);
-         if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+         if (!accessToken) {
+            console.warn("⚠️ No access token found in session, skipping bootstrap");
+            return;
+         }
+
+         // Synchronously write tokens to localStorage BEFORE calling bootstrap
+         localStorage.setItem("access_token", accessToken);
+         if (refreshToken) {
+            localStorage.setItem("refresh_token", refreshToken);
+         }
 
          console.log("🔐 Tokens synced to localStorage");
          console.log("🔄 Bootstrapping chats from backend…");
 
-         // Run only once per auth session
-         useAppStore.getState().bootstrapAfterLogin();
+         // Small delay to ensure localStorage write is complete
+         setTimeout(() => {
+            useAppStore.getState().bootstrapAfterLogin();
+         }, 0);
       }
    }, [status, session]);
 

@@ -227,10 +227,20 @@ export const useAppStore = createWithEqualityFn<State>()(
 
       /* ---------------- Bootstrapping ---------------- */
       bootstrapAfterLogin: async () => {
+        console.log("🔄 Starting bootstrap process...");
         try {
+          // Verify token exists before attempting to load
+          const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+          if (!token) {
+            console.error("❌ Bootstrap failed: No access token found");
+            return;
+          }
+
           await get().loadChatsFromServer();
           const { threads } = get();
+          
           if (!threads.length) {
+            console.log("📝 No chats found, creating initial chat...");
             const created = await apiCreateChat("Chat 1");
             set({
               threads: [created],
@@ -238,6 +248,7 @@ export const useAppStore = createWithEqualityFn<State>()(
               currentThreadId: created.id,
             });
           } else {
+            console.log(`✅ Loaded ${threads.length} chat(s) from server`);
             const active = threads[0];
             set({
               currentThreadId: active.id,
@@ -249,14 +260,18 @@ export const useAppStore = createWithEqualityFn<State>()(
               console.warn("No messages found for this chat:", e);
             }
           }
+          
+          // Clean up any temporary local-only threads
           set((s) => ({
             threads: s.threads.filter((t) => !t.id.startsWith("t")),
             messages: Object.fromEntries(
               Object.entries(s.messages).filter(([id]) => !id.startsWith("t"))
             ),
           }));
+          
+          console.log("✅ Bootstrap completed successfully");
         } catch (e) {
-          console.error("bootstrapAfterLogin failed:", e);
+          console.error("❌ bootstrapAfterLogin failed:", e);
         }
       },
 

@@ -20,6 +20,10 @@ export async function apiFetch(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
 
+  if (!token && typeof window !== "undefined") {
+    console.warn("⚠️ No access token found in localStorage for endpoint:", endpoint);
+  }
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
