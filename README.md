@@ -109,6 +109,7 @@ iris-arc/
 - **pnpm:** Latest version (`npm install -g pnpm`)
 - **Python:** 3.11 or higher
 - **Git:** For version control
+- **Docker:** (Optional) For containerized deployment - [Installation Guide](INSTALL_DOCKER.md)
 - **Code Editor:** VS Code, Cursor, or similar (recommended extensions below)
 
 ### Recommended VS Code Extensions
@@ -123,6 +124,36 @@ iris-arc/
 ---
 
 ## 🧭 Quick Start
+
+### Option 1: Docker (Recommended) 🐳
+
+The fastest way to get started is using Docker:
+
+```bash
+# Clone the repository
+git clone git@github.com:<your-username>/iris-arc.git
+cd iris-arc
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and set your JWT_SECRET: openssl rand -hex 32
+
+# Build and start all services
+docker compose up -d --build
+```
+
+Access the application:
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
+
+**Don't have Docker?** See [INSTALL_DOCKER.md](INSTALL_DOCKER.md) for installation instructions.
+
+For detailed Docker usage, see [DOCKER.md](DOCKER.md).
+
+---
+
+### Option 2: Manual Setup
 
 ### 1️⃣ Clone the Repository
 
