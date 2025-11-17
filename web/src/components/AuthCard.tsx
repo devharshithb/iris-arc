@@ -42,7 +42,8 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
          toast.success("Logged in");
          router.replace("/");
       } else {
-         toast.error("Invalid credentials");
+         console.error("Login failed:", res?.error);
+         toast.error(res?.error || "Invalid credentials");
       }
    };
 
@@ -58,20 +59,26 @@ export default function AuthCard({ mode }: { mode: "login" | "signup" }) {
             const msg = await safeError(r);
             throw new Error(msg || "Signup failed");
          }
+         
+         const data = await r.json();
+         console.log("✅ Signup successful, attempting auto-login...");
+         
          // After signup, log in via NextAuth credentials provider
          const res = await signIn("credentials", {
             redirect: false,
             email,
             password,
          });
+         
          if (res?.ok) {
             toast.success("Account created");
             router.replace("/");
          } else {
-            throw new Error("Auto-login failed after signup");
+            console.error("Auto-login failed:", res?.error);
+            throw new Error(res?.error || "Auto-login failed after signup. Please try logging in manually.");
          }
       } catch (e: any) {
-         console.error(e);
+         console.error("Signup error:", e);
          toast.error(e.message || "Signup error");
       } finally {
          setLoading(false);
