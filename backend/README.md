@@ -74,6 +74,27 @@ backend/
 
 ## 🚀 Getting Started
 
+### Option 1: Using Docker (Recommended)
+
+The backend is automatically built and run when using the main project's Docker setup:
+
+```bash
+# From project root
+cd /path/to/iris-arc
+docker compose up backend
+```
+
+This will:
+- Build the Python 3.11-slim Docker image
+- Install all dependencies from requirements.txt
+- Start Uvicorn on port 8000
+- Create database volume for persistence
+- Set up health checks
+
+### Option 2: Local Development
+
+For local development without Docker:
+
 ### Prerequisites
 
 - Python 3.11 or higher
@@ -359,7 +380,51 @@ See `requirements.txt` for the complete list.
 
 ## 🚀 Deployment
 
-### Production Server
+### Docker Deployment (Recommended)
+
+The backend Dockerfile is optimized for production:
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data
+
+# Health check
+HEALTHCHECK CMD python -c "import requests; requests.get('http://localhost:8000/')"
+
+# Run application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Build and run:**
+```bash
+# From backend directory
+docker build -t iris-arc-backend .
+docker run -p 8000:8000 --env-file .env iris-arc-backend
+
+# Or use docker-compose from project root
+cd ..
+docker compose up backend
+```
+
+**Docker Features:**
+- Health checks for monitoring
+- Volume support for database persistence
+- Environment variable configuration
+- Optimized layer caching
+
+---
+
+### Production Server (Without Docker)
 
 For production, use more workers and disable reload:
 
