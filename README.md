@@ -334,33 +334,42 @@ Currently, testing infrastructure is being set up. Planned testing stack:
 
 ## 🧾 Deployment
 
-### Frontend (Vercel - Recommended)
+### Docker Deployment (Recommended)
+
+The easiest way to deploy Iris Arc is using Docker Compose:
+
+```bash
+# Clone and navigate to the repository
+cd iris-arc
+
+# Copy environment variables
+cp .env.example .env
+# Edit .env and set your JWT_SECRET
+
+# Build and start all services
+docker compose up -d --build
+```
+
+Access the application at:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+### Frontend (Vercel)
 
 ```bash
 cd web
 pnpm build
-# Deploy to Vercel
 vercel --prod
 ```
 
-### Backend (Railway, Fly.io, or Docker)
+### Backend (Railway, Fly.io, or VPS)
 
 ```bash
 cd backend
-# For production, use gunicorn or similar
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Docker Deployment (Optional)
-
-Create `Dockerfile` for backend:
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ---
@@ -389,7 +398,7 @@ We welcome contributions! Please follow these guidelines:
 
 ## 📝 License
 
-This project is currently unlicensed. License will be added in future releases.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 

@@ -522,7 +522,7 @@ Contributions are welcome! Please ensure:
 
 ## 📄 License
 
-This project is currently unlicensed. License will be added in future releases.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
 
 ---
 
