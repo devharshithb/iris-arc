@@ -662,13 +662,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📧 Contact & Support
 
 For questions, issues, or contributions:
-<<<<<<< HEAD
 
 - **GitHub Issues:** [Create an issue](https://github.com/devharshithb/iris-arc/issues)
 - **Docker Issues:** Check troubleshooting section above
-=======
-- **GitHub Issues:** [Create an issue](https://github.com/devharshithb/iris-arc/issues)
->>>>>>> c88e558a7cd38e1107b6c15a76b7b45ecf65ae4e
 - **Email:** [code.harshithb@gmail.com]
 
 ---

@@ -1,5 +1,5 @@
 # Frontend Dockerfile - Multi-stage build
-FROM node:18-alpine AS deps
+FROM node:18-slim AS deps
 
 # Install dependencies only when needed
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN npm install -g pnpm
 RUN pnpm build
 
 # Production image, copy all the files and run next
-FROM node:18-alpine AS runner
+FROM node:18-slim AS runner
 
 WORKDIR /app
 
